@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+*.egg-info/
+
+# Local source — never in git
+geotiffs/*.tif
+geotiffs/*.tiff
+
+# Built site — deployed to gh-pages branch only (Model C)
+docs/
+data/catalog.json
