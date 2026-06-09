@@ -34,7 +34,6 @@ REMOTE="$(git remote get-url origin)"
 STAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 GRANULES="$(python -c "import json; print(json.load(open('${CATALOG}'))['product_count'])")"
 
-# owner/repo from git@github.com:ORG/REPO.git or https://github.com/ORG/REPO.git
 REPO_SLUG="$(
   printf '%s' "$REMOTE" | sed -E 's#.*github\.com[:/]([^/]+/[^/.]+)(\.git)?$#\1#'
 )"
@@ -42,31 +41,27 @@ REPO_SLUG="$(
 echo "=== SIENA Flood Maps — publish ==="
 echo "Deploying docs/ (${GRANULES} granules, ${PNG_COUNT} PNGs) to gh-pages…"
 
-WORKTREE="$(mktemp -d)"
-cleanup() {
-  cd "$ROOT"
-  git worktree remove --force "$WORKTREE" 2>/dev/null || rm -rf "$WORKTREE"
-  git branch -D gh-pages 2>/dev/null || true
-}
-trap cleanup EXIT
+# Isolated repo avoids git worktree --orphan issues when gh-pages exists on remote.
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
 
-git branch -D gh-pages 2>/dev/null || true
-git worktree add --orphan "$WORKTREE" gh-pages
+rsync -a --delete "${ROOT}/docs/" "${WORK}/"
 
-rsync -a --delete "${ROOT}/docs/" "${WORKTREE}/"
-
-cd "$WORKTREE"
+cd "$WORK"
+git init -q
+git checkout -b gh-pages
 git add -A
 git -c user.name="${GIT_AUTHOR_NAME:-SIENA Flood Maps}" \
     -c user.email="${GIT_AUTHOR_EMAIL:-siena-floodmaps@users.noreply.github.com}" \
-    commit -m "Deploy ${STAMP} — ${GRANULES} granules (${PNG_COUNT} PNGs)" --allow-empty
+    commit -m "Deploy ${STAMP} — ${GRANULES} granules (${PNG_COUNT} PNGs)"
 
-git push -f origin gh-pages
+DEPLOY_SHA="$(git rev-parse --short HEAD)"
+git push -f "$REMOTE" HEAD:gh-pages
 
 cd "$ROOT"
 
 echo ""
-echo "Pushed gh-pages ($(git -C "$WORKTREE" rev-parse --short HEAD 2>/dev/null || echo '?'))."
+echo "Pushed gh-pages (${DEPLOY_SHA})."
 
 trigger_deploy_workflow() {
   if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
@@ -93,11 +88,8 @@ if trigger_deploy_workflow; then
   echo "Deploy workflow started — usually live in 1–2 min."
 else
   echo "WARNING: gh-pages pushed but deploy workflow was NOT started." >&2
-  echo "  Push events to gh-pages do not reliably trigger Actions." >&2
-  echo "  Fix (pick one):" >&2
-  echo "    1. gh auth login   then re-run ./scripts/publish.sh" >&2
-  echo "    2. export GITHUB_TOKEN=<PAT with Actions:write>" >&2
-  echo "    3. GitHub → Actions → Deploy GitHub Pages → Run workflow" >&2
+  echo "  Fix: gh auth login   OR   export GITHUB_TOKEN=<PAT>" >&2
+  echo "  Or: Actions → Deploy GitHub Pages → Run workflow" >&2
 fi
 
 echo "  Actions: https://github.com/${REPO_SLUG}/actions"
