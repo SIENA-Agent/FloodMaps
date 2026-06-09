@@ -9,9 +9,9 @@ See [README.md](README.md) for setup and update instructions.
 | `main` | Scripts and viewer source only |
 | `gh-pages` | Built site (tiles + catalog), force-replaced each `./scripts/publish.sh` |
 
-**Pages source:** Settings → Pages → **Deploy from branch** → `gh-pages` / `/(root)`.
+**Pages source (one-time):** Settings → Pages → **GitHub Actions** (not “Deploy from branch”).
 
-No GitHub Actions workflow required. No PNG tiles in `main` history.
+`.github/workflows/pages.yml` runs on every **push to `gh-pages`** (triggered by `./scripts/publish.sh`). It uploads the branch contents and deploys — no tile bake in CI. PNG tiles are never on `main`.
 
 ## Automatic updates (~30 min)
 

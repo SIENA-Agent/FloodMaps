@@ -48,7 +48,7 @@ pip install -r requirements.txt
 ./scripts/publish.sh
 ```
 
-**GitHub Pages (one-time):** Settings → Pages → **Deploy from branch** → `gh-pages` / `/(root)`.
+**GitHub Pages (one-time):** Settings → Pages → source = **GitHub Actions**. Each `./scripts/publish.sh` pushes `gh-pages` and triggers the deploy workflow (~1–2 min).
 
 ## Preview locally
 

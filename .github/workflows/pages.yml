@@ -1,0 +1,43 @@
+name: Deploy GitHub Pages
+
+# Runs when publish.sh force-pushes the built site to gh-pages.
+on:
+  push:
+    branches: [gh-pages]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: gh-pages
+
+      - name: Validate built site
+        run: |
+          test -f index.html
+          test -f data/catalog.json
+          test -d tiles
+          count=$(find tiles -name '*.png' | wc -l)
+          echo "PNG tiles: $count"
+          test "$count" -gt 0
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

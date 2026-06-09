@@ -50,5 +50,7 @@ git commit -m "Deploy ${STAMP} — ${GRANULES} granules (${PNG_COUNT} PNGs)"
 git push -f "$REMOTE" HEAD:gh-pages
 
 echo ""
-echo "Done. Site: https://siena-agent.github.io/FloodMaps/"
+echo "Pushed to gh-pages. GitHub Actions should deploy in ~1–2 min."
+echo "  Actions: https://github.com/SIENA-Agent/FloodMaps/actions"
+echo "  Site:    https://siena-agent.github.io/FloodMaps/"
 echo "main branch unchanged — only scripts live in git history."

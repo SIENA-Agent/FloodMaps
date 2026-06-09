@@ -75,7 +75,7 @@ web/ requirements.txt geotiffs/*.tif
 
 Restore the same paths so output lands in `docs/` at repo root.
 
-**GitHub Pages (one-time):** Settings → Pages → **Deploy from branch** → `gh-pages` / `/(root)`.
+**GitHub Pages (one-time):** Settings → Pages → **GitHub Actions**. Push to `gh-pages` via `publish.sh` triggers `.github/workflows/pages.yml`.
 
 ### Pruning old dates
 
