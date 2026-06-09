@@ -1,8 +1,8 @@
-# GeoTIFF data folder (local only)
+# geotiffs/ — source GeoTIFF input
 
 Drop Sentinel-1 SIENA RGB flood classification `.tif` files here.
 
-**Not in git** (see `.gitignore`). HPC refreshes this folder, prunes old dates, then runs `./scripts/publish.sh`.
+**`.tif` files are gitignored.** Only this README and `.gitkeep` are in git so clones show the expected layout.
 
 ## Naming convention
 
@@ -12,10 +12,20 @@ Filenames should include Sentinel-1 sensing times, e.g.:
 
 The build script parses the **first** `YYYYMMDDTHHMMSS` pair for catalog dates.
 
-## Publish
+## Build (compute node)
+
+```bash
+./scripts/build.sh
+```
+
+Reads `geotiffs/*.tif`, writes PNG tiles and catalog to `docs/` and `data/`.
+
+Prune granules older than your retention window before building.
+
+## Publish (login node)
 
 ```bash
 ./scripts/publish.sh
 ```
 
-Builds tiles locally and deploys to the `gh-pages` branch. No commit to `main`.
+Deploys `docs/` to GitHub — run after build (rsync `docs/` from compute if needed).

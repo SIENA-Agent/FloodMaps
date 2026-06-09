@@ -15,7 +15,7 @@ No GitHub Actions workflow required. No PNG tiles in `main` history.
 
 ## Automatic updates (~30 min)
 
-HPC cron runs `./scripts/publish.sh` after refreshing `geotiffs/`. Only `gh-pages` is updated; `main` stays unchanged.
+HPC runs `./scripts/build.sh` on a compute node, then `./scripts/publish.sh` on the login node. Only `gh-pages` is updated; `main` stays unchanged.
 
 ## Limits
 

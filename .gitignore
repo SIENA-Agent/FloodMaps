@@ -4,10 +4,15 @@ __pycache__/
 .DS_Store
 *.egg-info/
 
-# Local source — never in git
+# Local source GeoTIFFs — never in git
 geotiffs/*.tif
 geotiffs/*.tiff
 
-# Built site — deployed to gh-pages branch only (Model C)
-docs/
-data/catalog.json
+# Build outputs (scripts/build.sh) — folder READMEs stay in git
+data/*
+!data/README.md
+!data/.gitkeep
+
+docs/*
+!docs/README.md
+!docs/.gitkeep

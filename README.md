@@ -11,37 +11,56 @@ Interactive **SIENA** Sentinel-1 flood classification map viewer on GitHub Pages
 
 | Branch | Contents | Size |
 |--------|----------|------|
-| **`main`** | Scripts, viewer source, docs only | ~1 MB |
-| **`gh-pages`** | Built `docs/` (tiles + catalog) | ~40–450 MB, **1 commit** (force-replaced each deploy) |
-| **Local** | `geotiffs/*.tif` (gitignored) | HPC scratch |
+| **`main`** | Scripts, folder layout, viewer source | ~1 MB |
+| **`gh-pages`** | Built `docs/` (tiles + catalog) | ~40–450 MB, **1 commit** |
+| **Local/HPC** | `geotiffs/*.tif` (gitignored) | scratch storage |
 
 PNG tiles are **never** on `main`. Git history stays minimal.
 
-## Publish workflow (HPC, e.g. every 30 min)
+## Repository layout (after `git clone`)
+
+```
+geotiffs/           # drop .tif here (README + .gitkeep in git)
+data/               # build writes catalog.json here (README in git)
+docs/               # build writes full site here (README in git)
+scripts/
+  build.sh          # compute node — bake PNG tiles → docs/
+  publish.sh        # login node — push docs/ → gh-pages
+  build_site.py     # called by build.sh
+web/                # viewer source templates
+```
+
+See `docs/README.md` and `data/README.md` for build output details.
+
+## HPC workflow (~30 min)
 
 ```bash
-# 1. Update geotiffs/ (add new .tif, delete old dates)
+git clone git@github.com:SIENA-Agent/FloodMaps.git
+cd FloodMaps
 pip install -r requirements.txt
 
-# 2. Build + deploy to gh-pages
+# 1. Refresh geotiffs/ (add new .tif, delete old dates)
+
+# 2. Compute node — tile bake
+./scripts/build.sh                    # WORKERS=8 optional
+
+# 3. Login node — deploy (rsync docs/ here if build was remote)
 ./scripts/publish.sh
 ```
 
-`publish.sh` bakes tiles locally and **force-pushes** the site to the `gh-pages` branch. No commit to `main` unless you change scripts.
-
-**GitHub Pages setting (one-time):** Repo → **Settings → Pages** → Source: **Deploy from branch** → Branch: **`gh-pages`** / **/(root)**.
+**GitHub Pages (one-time):** Settings → Pages → **Deploy from branch** → `gh-pages` / `/(root)`.
 
 ## Preview locally
 
 ```bash
-python scripts/build_site.py
+./scripts/build.sh
 python -m http.server 8080 --directory docs
 ```
 
 ## How it works
 
 ```
-geotiffs/ (local)  →  build_site.py  →  docs/  →  force-push gh-pages  →  GitHub Pages
+geotiffs/  →  build.sh  →  docs/ + data/catalog.json  →  publish.sh  →  gh-pages
 ```
 
 See [ARCHITECTURE.md](ARCHITECTURE.md).
@@ -53,13 +72,3 @@ See [ARCHITECTURE.md](ARCHITECTURE.md).
 | 1 | Blue | Permanent water |
 | 3 | Red | Flood water |
 | 255 / 0 | Transparent | Background |
-
-## Project layout
-
-```
-geotiffs/           # local GeoTIFFs (gitignored)
-data/catalog.json   # generated at build (gitignored)
-docs/               # generated site (gitignored; lives on gh-pages)
-scripts/            # build_catalog.py, build_site.py, publish.sh
-web/                # viewer source (on main)
-```

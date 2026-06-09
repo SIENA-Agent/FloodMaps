@@ -10,7 +10,7 @@ How we display palette GeoTIFFs on GitHub Pages, and how to scale for HPC-driven
 | Retention | 3–5 days in local `geotiffs/` |
 | **`main` branch** | Scripts + viewer source only (~1 MB) |
 | **`gh-pages` branch** | Current built site (~40–450 MB), **one commit**, force-replaced each deploy |
-| Update cadence | HPC cron ~30 min: refresh geotiffs → `./scripts/publish.sh` |
+| Update cadence | HPC cron ~30 min: refresh geotiffs → `build.sh` → `publish.sh` |
 | Viewer goal | Smooth pan/zoom on GitHub Pages (no backend) |
 
 At ~195 KB baked tiles per granule: **~2,000 granules ≈ 400 MB** on `gh-pages` (not in `main` history).
@@ -26,14 +26,15 @@ local/HPC     geotiffs/*.tif          —  gitignored
 ## Production path: pre-baked PNG tiles
 
 ```
-geotiffs/*.tif  →  build_site.py  →  docs/tiles/ + catalog
-                                          ↓
-                              publish.sh → force-push gh-pages
-                                          ↓
-                              Leaflet tile layers (visible PNGs only)
+geotiffs/*.tif  →  build.sh  →  docs/tiles/ + catalog
+                                    ↓
+                        publish.sh → force-push gh-pages
+                                    ↓
+                        Leaflet tile layers (visible PNGs only)
 ```
 
-**Default:** `python scripts/build_site.py` (`--mode tiles`)
+**Build:** `./scripts/build.sh` (compute node) — wraps `build_site.py --mode tiles`
+**Publish:** `./scripts/publish.sh` (login node) — no Python raster deps required beyond reading catalog JSON
 
 ### Viewer behavior (tiles mode)
 
@@ -49,15 +50,30 @@ Status line example: `2026-06-07: 95 granule(s) — pan/zoom to explore`
 
 `python scripts/build_site.py --mode geotiff` — not used for production deploy.
 
-## HPC cron workflow (~30 min)
+## HPC two-step workflow (~30 min)
 
 ```bash
 # 1. Upstream job drops new .tif into geotiffs/, deletes dates older than N days
-# 2. Publish (build + deploy — no main-branch commit)
+
+# 2. Compute node — tile bake (can run on batch node with geotiffs/)
+./scripts/build.sh              # optional: WORKERS=8
+
+# 3. Login node — deploy only (rsync docs/ from compute if needed)
 ./scripts/publish.sh
 ```
 
-`publish.sh` builds `docs/` locally and **force-pushes** to `origin/gh-pages`. The `main` branch is touched only when scripts or viewer source change.
+`build.sh` writes `docs/` and `data/catalog.json`. `publish.sh` **force-pushes** `docs/` to `origin/gh-pages`. Neither touches `main` unless scripts change.
+
+### Compute-node minimal copy
+
+If not cloning the full repo on the compute node, copy at least:
+
+```
+scripts/build.sh build_site.py build_catalog.py render_tiles.py
+web/ requirements.txt geotiffs/*.tif
+```
+
+Restore the same paths so output lands in `docs/` at repo root.
 
 **GitHub Pages (one-time):** Settings → Pages → **Deploy from branch** → `gh-pages` / `/(root)`.
 
@@ -86,7 +102,7 @@ Optional future: `scripts/prune_catalog.py --keep-days 5`.
 ## Reproducibility checklist
 
 - [x] Source of truth: `geotiffs/*.tif` on HPC/local (gitignored)
-- [x] Build: `scripts/build_catalog.py` + `scripts/build_site.py` + `scripts/publish.sh`
+- [x] Build: `scripts/build.sh` → `build_site.py`; publish: `scripts/publish.sh`
 - [x] No generated files on `main` (`docs/`, `data/catalog.json` gitignored)
 - [x] Class colors in `web/js/viewer.js` (palette classes 1=blue, 3=red)
 - [ ] Optional retention prune script (future)
