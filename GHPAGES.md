@@ -11,7 +11,9 @@ See [README.md](README.md) for setup and update instructions.
 
 **Pages source (one-time):** Settings → Pages → **GitHub Actions** (not “Deploy from branch”).
 
-`.github/workflows/pages.yml` runs on every **push to `gh-pages`** (triggered by `./scripts/publish.sh`). It uploads the branch contents and deploys — no tile bake in CI. PNG tiles are never on `main`.
+`.github/workflows/pages.yml` is started by `./scripts/publish.sh` via **workflow_dispatch** (after pushing `gh-pages`). Requires `gh auth login` or `GITHUB_TOKEN` on the machine running publish.
+
+Pushing `gh-pages` alone does **not** reliably trigger Actions — publish always calls the workflow explicitly.
 
 ## Automatic updates (~30 min)
 

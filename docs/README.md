@@ -29,11 +29,12 @@ docs/
 ./scripts/build.sh              # reads geotiffs/, writes docs/ + data/catalog.json
 ```
 
-**Login node** (git push only):
+**Login node** (git push + deploy trigger):
 
 ```bash
+# one-time: gh auth login   OR   export GITHUB_TOKEN=<PAT>
 # if build ran on another node, rsync docs/ here first
-./scripts/publish.sh            # force-push docs/ → origin/gh-pages
+./scripts/publish.sh            # push gh-pages + start deploy workflow
 ```
 
 Optional env vars for `build.sh`: `WORKERS=8`, `BASE_PATH=/FloodMaps/`.

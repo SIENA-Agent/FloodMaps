@@ -1,10 +1,11 @@
 name: Deploy GitHub Pages
 
-# Runs when publish.sh force-pushes the built site to gh-pages.
+# publish.sh force-pushes gh-pages, then triggers this via workflow_dispatch.
+# (Push-to-gh-pages alone does not reliably start Actions.)
 on:
-  push:
-    branches: [gh-pages]
   workflow_dispatch:
+  repository_dispatch:
+    types: [deploy-site]
 
 permissions:
   contents: read

@@ -48,7 +48,11 @@ pip install -r requirements.txt
 ./scripts/publish.sh
 ```
 
-**GitHub Pages (one-time):** Settings → Pages → source = **GitHub Actions**. Each `./scripts/publish.sh` pushes `gh-pages` and triggers the deploy workflow (~1–2 min).
+**GitHub Pages (one-time):**
+1. Settings → Pages → source = **GitHub Actions**
+2. Auth for deploy trigger (Mac or HPC login node): `gh auth login` **or** `export GITHUB_TOKEN=<fine-grained PAT with Actions: Read and write>`
+
+Each `./scripts/publish.sh` pushes `gh-pages`, then **explicitly starts** the deploy workflow (~1–2 min).
 
 ## Preview locally
 
