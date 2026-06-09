@@ -504,17 +504,23 @@
     }
   }
 
+  function defaultSensingDate() {
+    const dates = catalog.available_dates;
+    return dates.length ? dates[dates.length - 1] : null;
+  }
+
   function populateDateSelect() {
+    const initialDate = defaultSensingDate();
     dateSelect.innerHTML = "";
-    catalog.available_dates.forEach((date, index) => {
+    catalog.available_dates.forEach((date) => {
       const option = document.createElement("option");
       option.value = date;
       const count = productsForDate(date).length;
       option.textContent = `${formatDateLabel(date)} (${count} granule${count === 1 ? "" : "s"})`;
+      if (date === initialDate) option.selected = true;
       dateSelect.appendChild(option);
-      if (index === 0) option.selected = true;
     });
-    displayDate(catalog.available_dates[0]);
+    if (initialDate) displayDate(initialDate);
   }
 
   function initMapView() {
