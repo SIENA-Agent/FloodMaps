@@ -9,16 +9,16 @@ Automates the Mac workflow on UMD Zaratan:
 ## One-time setup (login node)
 
 ```bash
-# 1. Clone repo
-git clone git@github.com:SIENA-Agent/FloodMaps.git ~/FloodMaps
-cd ~/FloodMaps
+# 1. Clone repo (Zaratan shared gateway path)
+git clone git@github.com:SIENA-Agent/FloodMaps.git /scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps
+cd /scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps
 
 # 2. Python deps for tile bake (once)
 /scratch/zt1/project/henryqy-prj/shared/env/miniconda3/envs/SIENA/bin/python -m pip install -r requirements.txt
 
 # 3. Site paths (optional overrides)
 cp scripts/Zaratan/env.config.example.sh scripts/Zaratan/env.config.local.sh
-# edit FLOODMAPS_ROOT if not ~/FloodMaps
+# optional: edit FLOODMAPS_ROOT or other paths
 
 # 4. GitHub token — OUTSIDE the repo (see below)
 # 5. SSH key on SIENA-Agent account for git push
@@ -33,7 +33,7 @@ Zaratan has no `gh` CLI. Store a fine-grained PAT in your **home directory**, no
 mkdir -p ~/.config/floodmaps
 chmod 700 ~/.config/floodmaps
 
-cp ~/FloodMaps/scripts/Zaratan/credentials.env.example ~/.config/floodmaps/credentials.env
+cp /scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps/scripts/Zaratan/credentials.env.example ~/.config/floodmaps/credentials.env
 chmod 600 ~/.config/floodmaps/credentials.env
 
 vim ~/.config/floodmaps/credentials.env
@@ -81,7 +81,7 @@ Mac can use **either**:
 ## Run (login node)
 
 ```bash
-cd ~/FloodMaps
+cd /scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps
 bash scripts/Zaratan/orchestrate_floodmaps.sh
 ```
 
@@ -98,7 +98,7 @@ Options:
 Credentials file is loaded automatically (cron does not need `~/.bashrc`):
 
 ```cron
-*/30 * * * * cd $HOME/FloodMaps && bash scripts/Zaratan/orchestrate_floodmaps.sh >> $HOME/FloodMaps/logs/zaratan/cron.log 2>&1
+*/30 * * * * cd /scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps && bash scripts/Zaratan/orchestrate_floodmaps.sh >> /scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps/logs/zaratan/cron.log 2>&1
 ```
 
 ## Scripts

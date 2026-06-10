@@ -76,8 +76,8 @@ geotiffs/  →  build.sh  →  docs/ + data/catalog.json  →  publish.sh  →  
 On UMD Zaratan: sync SIENA products → Slurm tile build → login-node publish.
 
 ```bash
-cp scripts/Zaratan/env.config.example.sh scripts/Zaratan/env.config.local.sh
-# edit paths, then:
+cd /scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps
+# optional overrides: cp scripts/Zaratan/env.config.example.sh scripts/Zaratan/env.config.local.sh
 bash scripts/Zaratan/orchestrate_floodmaps.sh
 ```
 

@@ -6,8 +6,8 @@
 #   source scripts/Zaratan/env.config.example.sh
 #   source scripts/Zaratan/env.config.local.sh   # optional overrides
 
-# ---- FloodMaps repo on Zaratan (git clone) ----
-export FLOODMAPS_ROOT="${FLOODMAPS_ROOT:-$HOME/FloodMaps}"
+# ---- FloodMaps repo on Zaratan ----
+export FLOODMAPS_ROOT="${FLOODMAPS_ROOT:-/scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps}"
 
 # ---- SIENA routine production RGB GeoTIFFs ----
 export SIENA_OUTPUT_BASE="${SIENA_OUTPUT_BASE:-/scratch/zt1/project/henryqy-prj/shared/data/routine_production/SIENA_result}"
