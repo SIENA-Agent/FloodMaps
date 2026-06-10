@@ -43,13 +43,10 @@ mkdir -p "$FLOODMAPS_LOG_DIR"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 LOG="${FLOODMAPS_LOG_DIR}/orchestrate_${STAMP}.log"
 
-echo "=== FloodMaps orchestrator $(date -u) ==="
-echo "LOG=${LOG}"
-
 if [[ -t 1 ]]; then
   exec > >(tee -a "$LOG") 2>&1
 else
-  # nohup/redirect already — avoid tee writing the same file twice
+  # nohup — write log only (do not also redirect nohup to the same file)
   exec >>"$LOG" 2>&1
 fi
 
