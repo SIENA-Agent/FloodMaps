@@ -38,6 +38,29 @@ REPO_SLUG="$(
   printf '%s' "$REMOTE" | sed -E 's#.*github\.com[:/]([^/]+/[^/.]+)(\.git)?$#\1#'
 )"
 
+# Load token before git push (HPC: ~/.config/floodmaps/credentials.env)
+# shellcheck disable=SC1091
+source "${ROOT}/scripts/load_github_credentials.sh"
+
+git_push_gh_pages() {
+  local remote="$1"
+  # SSH remote — use as-is (HPC: add SSH key to SIENA-Agent account)
+  if [[ "$remote" =~ ^git@github\.com: ]] || [[ "$remote" =~ ^ssh:// ]]; then
+    git push -f "$remote" HEAD:gh-pages
+    return
+  fi
+  # HTTPS + PAT — non-interactive push for HPC login nodes
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    export GIT_TERMINAL_PROMPT=0
+    git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO_SLUG}.git" HEAD:gh-pages
+    return
+  fi
+  echo "ERROR: HTTPS git push needs GITHUB_TOKEN or an SSH remote." >&2
+  echo "  Token: ~/.config/floodmaps/credentials.env" >&2
+  echo "  Or:    git remote set-url origin git@github.com:${REPO_SLUG}.git" >&2
+  exit 1
+}
+
 echo "=== SIENA Flood Maps — publish ==="
 echo "Deploying docs/ (${GRANULES} granules, ${PNG_COUNT} PNGs) to gh-pages…"
 
@@ -56,16 +79,12 @@ git -c user.name="${GIT_AUTHOR_NAME:-SIENA Flood Maps}" \
     commit -m "Deploy ${STAMP} — ${GRANULES} granules (${PNG_COUNT} PNGs)"
 
 DEPLOY_SHA="$(git rev-parse --short HEAD)"
-git push -f "$REMOTE" HEAD:gh-pages
+git_push_gh_pages "$REMOTE"
 
 cd "$ROOT"
 
 echo ""
 echo "Pushed gh-pages (${DEPLOY_SHA})."
-
-# Mac: gh auth login. HPC/cron: ~/.config/floodmaps/credentials.env
-# shellcheck disable=SC1091
-source "${ROOT}/scripts/load_github_credentials.sh"
 
 trigger_deploy_workflow() {
   if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then

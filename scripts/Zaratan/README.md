@@ -21,8 +21,10 @@ cp scripts/Zaratan/env.config.example.sh scripts/Zaratan/env.config.local.sh
 # optional: edit FLOODMAPS_ROOT or other paths
 
 # 4. GitHub token — OUTSIDE the repo (see below)
-# 5. SSH key on SIENA-Agent account for git push
-ssh -T git@github.com
+# 5. Git push auth (pick one)
+#    A) HTTPS clone + credentials.env (GITHUB_TOKEN used automatically by publish.sh)
+#    B) SSH remote: git remote set-url origin git@github.com:SIENA-Agent/FloodMaps.git
+#       ssh -T git@github.com
 ```
 
 ## GitHub token (HPC — safe, outside repo)
@@ -126,7 +128,7 @@ Do **not** redirect nohup output to the same log file — that duplicates lines.
 
 | What | Where | How |
 |------|-------|-----|
-| **Git push** | login | SSH key on SIENA-Agent GitHub account |
+| **Git push** | login | `GITHUB_TOKEN` in credentials.env (HTTPS) **or** SSH key on SIENA-Agent |
 | **Actions deploy** | login | `~/.config/floodmaps/credentials.env` (auto-loaded) |
 | **Slurm** | login | Zaratan account on `standard` partition |
 | **SIENA data** | login/compute | Read `.../routine_production/SIENA_result` |
