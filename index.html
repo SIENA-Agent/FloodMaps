@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <base href="/FloodMaps/" />
+    <title>SIENA Flood Maps</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="css/viewer.css" />
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <aside class="control-panel">
+      <h1>SIENA Flood Maps</h1>
+      <p class="demo-note">
+        Interactive Sentinel-1 flood classification over <strong>OpenStreetMap</strong>.
+        Select a sensing date; click a granule for metadata.
+      </p>
+
+      <div class="field">
+        <label for="date-select">Sensing date</label>
+        <select id="date-select"></select>
+      </div>
+
+      <div class="field">
+        <label for="opacity">Overlay opacity</label>
+        <input id="opacity" type="range" min="0.3" max="1" step="0.05" value="0.9" />
+      </div>
+
+      <p id="status" class="status-line">Starting…</p>
+
+      <div id="granule-info" class="info-panel">
+        <p class="info-hint">Click on a granule on the map for details.</p>
+      </div>
+    </aside>
+
+    <section class="legend" aria-label="Class legend">
+      <h2>Classes</h2>
+      <div class="legend-item">
+        <span class="swatch permanent-water"></span>
+        <span>Permanent water (class 1)</span>
+      </div>
+      <div class="legend-item">
+        <span class="swatch flood-water"></span>
+        <span>Flood water (class 3)</span>
+      </div>
+      <p class="legend-note">Other pixels are transparent so the map base shows through.</p>
+    </section>
+
+    <section class="map-tools" aria-label="Map scale and zoom">
+      <div class="scale-block">
+        <span class="tools-label">Map scale</span>
+        <div id="scale-bar" class="scale-bar" aria-hidden="true">
+          <div id="scale-bar-line" class="scale-bar-line"></div>
+          <span id="scale-bar-label" class="scale-bar-label">—</span>
+        </div>
+      </div>
+      <div class="zoom-block">
+        <label class="tools-label" for="zoom-slider">Zoom level <span id="zoom-value">4</span></label>
+        <input id="zoom-slider" type="range" min="3" max="12" step="1" value="4" />
+      </div>
+      <p id="zoom-hint" class="tools-hint">Blue outlines show coverage when zoomed out.</p>
+    </section>
+
+    <script>window.FLOOD_VIEWER_CONFIG = { mode: "tiles", dataRoot: "data/geotiffs/", tileMinZoom: 3, tileMaxZoom: 10 };</script>
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="js/catalog.js?v=2550"></script>
+    <script src="js/viewer.js?v=2550"></script>
+  </body>
+</html>
