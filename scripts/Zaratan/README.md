@@ -98,8 +98,17 @@ Options:
 Credentials file is loaded automatically (cron does not need `~/.bashrc`):
 
 ```cron
-*/30 * * * * cd /scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps && bash scripts/Zaratan/orchestrate_floodmaps.sh >> /scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps/logs/zaratan/cron.log 2>&1
+*/30 * * * * cd /scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps && bash scripts/Zaratan/orchestrate_floodmaps.sh
 ```
+
+Background (orchestrator writes its own log under `logs/zaratan/`):
+
+```bash
+nohup bash scripts/Zaratan/orchestrate_floodmaps.sh &
+tail -f logs/zaratan/orchestrate_*.log
+```
+
+Do **not** redirect nohup output to the same log file — that duplicates lines.
 
 ## Scripts
 

@@ -42,7 +42,16 @@ done
 mkdir -p "$FLOODMAPS_LOG_DIR"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 LOG="${FLOODMAPS_LOG_DIR}/orchestrate_${STAMP}.log"
-exec > >(tee -a "$LOG") 2>&1
+
+echo "=== FloodMaps orchestrator $(date -u) ==="
+echo "LOG=${LOG}"
+
+if [[ -t 1 ]]; then
+  exec > >(tee -a "$LOG") 2>&1
+else
+  # nohup/redirect already — avoid tee writing the same file twice
+  exec >>"$LOG" 2>&1
+fi
 
 echo "=== FloodMaps orchestrator $(date -u) ==="
 echo "host=$(hostname)"

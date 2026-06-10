@@ -38,13 +38,14 @@ is_demo_date() {
   return 1
 }
 
+CUTOFF="$(date -u -d "${KEEP_DAYS} days ago" +%Y%m%d 2>/dev/null || date -u -v-"${KEEP_DAYS}"d +%Y%m%d)"
+
 should_keep_sensing_date() {
   local sdate="$1"
   is_demo_date "$sdate" && return 0
-  [[ "$sdate" ge "$CUTOFF" ]]
+  # YYYYMMDD — lexicographic order matches chronological order
+  [[ ! "$sdate" < "$CUTOFF" ]]
 }
-
-CUTOFF="$(date -u -d "${KEEP_DAYS} days ago" +%Y%m%d 2>/dev/null || date -u -v-"${KEEP_DAYS}"d +%Y%m%d)"
 
 echo "=== sync geotiffs ==="
 echo "Source:  ${SIENA_OUTPUT_BASE}/<granule_folder>/*_RGB_*.tif"
