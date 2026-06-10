@@ -7,7 +7,7 @@ See [README.md](README.md) for setup and update instructions.
 | Branch | Role |
 |--------|------|
 | `main` | Scripts and viewer source only |
-| `gh-pages` | Built site (tiles + catalog), force-replaced each `./scripts/publish.sh` |
+| `gh-pages` | Built site (tiles + catalog); each publish adds one commit (incremental blob upload) |
 
 **Pages source (one-time):** Settings → Pages → **GitHub Actions** (not “Deploy from branch”).
 
@@ -20,6 +20,12 @@ Pushing `gh-pages` alone does **not** reliably trigger Actions — publish alway
 ## Automatic updates (~30 min)
 
 HPC runs `./scripts/build.sh` on a compute node, then `./scripts/publish.sh` on the login node. Only `gh-pages` is updated; `main` stays unchanged.
+
+**First deploy (Mac):** `PUBLISH_FULL=1 ./scripts/publish.sh` stages all of `docs/`.
+
+**Routine deploy (HPC):** `./scripts/publish.sh` (default `auto`) stages only granules added/removed since the last deploy (catalog diff). State lives in `.gh-pages-staging/` (gitignored). No file copy — `docs/` is the git work-tree.
+
+Recovery / re-publish everything: `./scripts/publish.sh --full`
 
 ## Limits
 

@@ -34,7 +34,7 @@ geotiffs/*.tif  →  build.sh  →  docs/tiles/ + catalog
 ```
 
 **Build:** `./scripts/build.sh` (compute node) — wraps `build_site.py --mode tiles`
-**Publish:** `./scripts/publish.sh` (login node) — no Python raster deps required beyond reading catalog JSON
+**Publish:** `./scripts/publish.sh` (login node) — catalog-diff incremental staging via `publish_stage.py`; Mac bootstrap uses `--full`
 
 ### Viewer behavior (tiles mode)
 
@@ -62,7 +62,9 @@ Status line example: `2026-06-07: 95 granule(s) — pan/zoom to explore`
 ./scripts/publish.sh
 ```
 
-`build.sh` writes `docs/` and `data/catalog.json`. `publish.sh` **force-pushes** `docs/` to `origin/gh-pages`. Neither touches `main` unless scripts change.
+`build.sh` writes `docs/` and `data/catalog.json`. `publish.sh` commits from `docs/` (git work-tree) into `.gh-pages-staging/.git` and pushes `gh-pages`. Routine runs stage only added/removed `tiles/<granule_id>/` plus catalog/viewer files. Neither touches `main` unless scripts change.
+
+**Bootstrap:** Mac — Globus geotiffs → `build.sh` → `PUBLISH_FULL=1 publish.sh`. **Routine:** HPC — sync → `build.sh` → `publish.sh` (auto incremental).
 
 ### Compute-node minimal copy
 

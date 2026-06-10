@@ -32,6 +32,30 @@ web/                # viewer source templates
 
 See `docs/README.md` and `data/README.md` for build output details.
 
+## Deploy workflow (Mac bootstrap → HPC updates)
+
+**Phase 1 — Mac (one-time full site)**  
+Globus (or copy) ~30 days of geotiffs + demo dates → build → full publish:
+
+```bash
+pip install -r requirements.txt
+./scripts/build.sh
+PUBLISH_FULL=1 ./scripts/publish.sh    # or: ./scripts/publish.sh --full
+```
+
+Confirm https://siena-agent.github.io/FloodMaps/ works.
+
+**Phase 2 — HPC (routine incremental)**  
+After `git pull origin main`, sync a few new/removed granules, build, publish:
+
+```bash
+./scripts/build.sh
+./scripts/publish.sh                   # auto: only changed granule tiles + catalog
+# or SSH-safe: bash scripts/Zaratan/publish_background.sh
+```
+
+`publish.sh` uses `docs/` directly (no copy to `/tmp`). It compares `catalog.json` to the last deploy and only `git add`s / `git rm`s changed `tiles/<granule_id>/` folders. First HPC run seeds state from `origin/gh-pages` automatically.
+
 ## HPC workflow (~30 min)
 
 ```bash
@@ -44,7 +68,7 @@ pip install -r requirements.txt
 # 2. Compute node — tile bake
 ./scripts/build.sh                    # WORKERS=8 optional
 
-# 3. Login node — deploy (rsync docs/ here if build was remote)
+# 3. Login node — incremental deploy
 ./scripts/publish.sh
 ```
 

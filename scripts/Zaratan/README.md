@@ -80,6 +80,16 @@ Mac can use **either**:
 
 `publish.sh` tries **gh first**, then **GITHUB_TOKEN** (from env or credentials file).
 
+## Mac bootstrap → HPC incremental (recommended)
+
+1. **Mac (once):** Globus ~30 days + demo geotiffs → `./scripts/build.sh` → `PUBLISH_FULL=1 ./scripts/publish.sh` → verify live site.
+2. **HPC:** `git pull origin main` (scripts only — `.gh-pages-staging/` is local/gitignored).
+3. **HPC routine:** `sync_geotiffs.sh` → Slurm `build.sh` → `./scripts/publish.sh` (auto incremental: few granules add/remove per run).
+
+First HPC publish after Mac bootstrap seeds deploy state from `origin/gh-pages` (no Mac copy of `.gh-pages-staging/` needed).
+
+Kill any old foreground publish still running `cp -al` from a previous script version before re-testing.
+
 ## Run (login node)
 
 ```bash
@@ -105,21 +115,27 @@ bash scripts/Zaratan/publish_background.sh
 tail -f logs/zaratan/publish_*.log
 ```
 
-`publish.sh` stages on scratch (`.gh-pages-staging/`) with hardlinks — not a full copy to login-node `/tmp`.
+`publish.sh` uses `docs/` as the git work-tree (no file copy). Incremental runs only stage changed `tiles/<granule_id>/` folders.
 
-### Quick test (smaller dataset)
+### Quick test (incremental on HPC)
 
-If `geotiffs/` still has thousands of stale granules from an old full-tree sync, clear and re-sync:
+After Mac bootstrap, test HPC with a small delta:
 
 ```bash
-rm -f geotiffs/*.tif
-KEEP_DAYS=1 bash scripts/Zaratan/sync_geotiffs.sh
+git pull origin main
+KEEP_DAYS=1 bash scripts/Zaratan/sync_geotiffs.sh   # small geotiff set
 bash scripts/Zaratan/orchestrate_floodmaps.sh --build-only --no-publish
+bash scripts/publish.sh                              # should report +N -M granules
+```
+
+Or publish only after a routine sync/build:
+
+```bash
 bash scripts/Zaratan/publish_background.sh
 tail -f logs/zaratan/publish_*.log
 ```
 
-`KEEP_DAYS=1` keeps demo dates (`20251214`, `20251217`, `20251219`) plus the last day of sensing dates.
+Force full re-publish (recovery): `PUBLISH_FULL=1 ./scripts/publish.sh`
 
 ## Cron (~every 30 min)
 
@@ -152,6 +168,7 @@ Do **not** redirect nohup output to the same log file — that duplicates lines.
 | `publish_background.sh` | login | `nohup publish.sh` + log under `logs/zaratan/` |
 | `runtime_env.sh` | compute | `PYTHON_BIN` + PROJ/GDAL (no conda activate) |
 | `../load_github_credentials.sh` | login | Loads token from home dir |
+| `../publish_stage.py` | login | Catalog-diff staging (called by `publish.sh`) |
 
 ## Authorization checklist
 
@@ -170,6 +187,7 @@ Compute nodes have **no internet** — only `build.sh` runs there. `publish.sh` 
 - **`gh: command not found`:** expected on Zaratan — use `~/.config/floodmaps/credentials.env`.
 - **Deploy not triggered:** re-run `publish_background.sh`; check token permissions.
 - **Publish killed by SSH disconnect:** use `publish_background.sh`, not foreground `publish.sh`.
-- **Publish very slow:** first run still spends time on `git add`/`git push` for 300k+ files; use `KEEP_DAYS=1` test sync for a smaller trial.
+- **Publish very slow (old script):** kill stale `cp -al` jobs; `git pull` and use incremental `publish.sh`.
+- **Incremental shows 0 add / 0 remove:** geotiff set matches last deploy; change `KEEP_DAYS` or wait for new SIENA granules.
 - **Build job fails:** see `floodmaps_build_<jobid>.out`; often missing `pip install -r requirements.txt`.
 - **No new tifs:** confirm `SIENA_OUTPUT_BASE` and `*_RGB_*.tif` under that tree.

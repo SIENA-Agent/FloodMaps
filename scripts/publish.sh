@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 # Deploy pre-built docs/ to gh-pages and trigger GitHub Actions deploy.
+#
+# Uses docs/ as git work-tree (no copy to staging). Incremental by default:
+# only added/removed granule tile dirs + site metadata are staged.
+#
+# Mac bootstrap (first full site):
+#   PUBLISH_FULL=1 ./scripts/publish.sh
+#   # or: ./scripts/publish.sh --full
+#
+# HPC routine update (after git pull + build):
+#   ./scripts/publish.sh
+#
 set -euo pipefail
 
 cleanup_pidfile() {
@@ -11,6 +22,20 @@ trap cleanup_pidfile EXIT
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+
+PUBLISH_MODE="${PUBLISH_MODE:-auto}"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --full) PUBLISH_MODE=full; shift ;;
+    --incremental) PUBLISH_MODE=incremental; shift ;;
+    -h|--help)
+      sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *) echo "Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+[[ "${PUBLISH_FULL:-}" == 1 ]] && PUBLISH_MODE=full
 
 if ! git remote get-url origin &>/dev/null; then
   echo "No git remote 'origin' — add: git remote add origin <url>" >&2
@@ -45,8 +70,10 @@ REPO_SLUG="$(
   printf '%s' "$REMOTE" | sed -E 's#.*github\.com[:/]([^/]+/[^/.]+)(\.git)?$#\1#'
 )"
 
-# Staging on scratch (same FS as docs/) — avoids copying 300k+ PNGs to login-node /tmp.
-GH_PAGES_STAGING="${GH_PAGES_STAGING_DIR:-${ROOT}/.gh-pages-staging}"
+STATE_DIR="${GH_PAGES_STATE_DIR:-${ROOT}/.gh-pages-staging}"
+GIT_DIR="${GH_PAGES_GIT_DIR:-${STATE_DIR}/.git}"
+export GIT_DIR
+export GIT_WORK_TREE="${ROOT}/docs"
 
 # Load token before git push (HPC: ~/.config/floodmaps/credentials.env)
 # shellcheck disable=SC1091
@@ -56,17 +83,19 @@ log_phase() {
   echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*"
 }
 
+gitw() {
+  git "$@"
+}
+
 git_push_gh_pages() {
   local remote="$1"
-  # SSH remote — use as-is (HPC: add SSH key to SIENA-Agent account)
   if [[ "$remote" =~ ^git@github\.com: ]] || [[ "$remote" =~ ^ssh:// ]]; then
-    git push -f "$remote" HEAD:gh-pages
+    gitw push -f "$remote" HEAD:gh-pages
     return
   fi
-  # HTTPS + PAT — non-interactive push for HPC login nodes
   if [[ -n "${GITHUB_TOKEN:-}" ]]; then
     export GIT_TERMINAL_PROMPT=0
-    git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO_SLUG}.git" HEAD:gh-pages
+    gitw push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO_SLUG}.git" HEAD:gh-pages
     return
   fi
   echo "ERROR: HTTPS git push needs GITHUB_TOKEN or an SSH remote." >&2
@@ -75,83 +104,62 @@ git_push_gh_pages() {
   exit 1
 }
 
-sync_docs_to_staging() {
-  local src="${ROOT}/docs"
-  local dst="${GH_PAGES_STAGING}"
-  local t0 t1
-
-  mkdir -p "$dst"
-  log_phase "Staging docs/ → ${dst} …"
-
-  if [[ -d "${dst}/.git" ]]; then
-    find "$dst" -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-  else
-    rm -rf "${dst:?}"/*
-  fi
-
-  t0="$(date +%s)"
-  # Hardlink copy on the same filesystem — near-instant vs a full data copy to /tmp.
-  if cp -al "${src}/." "${dst}/" 2>/dev/null; then
-    t1="$(date +%s)"
-    log_phase "Staged via hardlinks ($((t1 - t0))s)"
-    return
-  fi
-
-  log_phase "Hardlink copy unavailable — rsync fallback …"
-  rsync -a --delete "${src}/" "${dst}/"
-  t1="$(date +%s)"
-  log_phase "Staged via rsync ($((t1 - t0))s)"
-}
-
 echo "=== SIENA Flood Maps — publish ==="
 echo "Deploying docs/ (${GRANULES} granules, ${PNG_COUNT} PNGs) to gh-pages…"
-echo "Staging dir: ${GH_PAGES_STAGING}"
+echo "Work-tree: ${GIT_WORK_TREE}"
+echo "Git dir:   ${GIT_DIR}"
+echo "Mode:      ${PUBLISH_MODE}"
 
-sync_docs_to_staging
+STAGE_SUMMARY="${STATE_DIR}/stage_summary.json"
 
-cd "$GH_PAGES_STAGING"
-
-if [[ ! -d .git ]]; then
-  log_phase "git init in staging dir …"
-  git init -q
-  git checkout -b gh-pages
-elif [[ "$(git branch --show-current 2>/dev/null || true)" != "gh-pages" ]]; then
-  git checkout -b gh-pages 2>/dev/null || git checkout gh-pages
-fi
-
-log_phase "git add …"
+log_phase "stage (catalog diff) …"
 t0="$(date +%s)"
-GIT_OPTIONAL_LOCKS=0 git add -A
-log_phase "git add done ($(( $(date +%s) - t0 ))s)"
+python "${ROOT}/scripts/publish_stage.py" \
+  --catalog "$CATALOG" \
+  --state-dir "$STATE_DIR" \
+  --work-tree "${GIT_WORK_TREE}" \
+  --origin-url "$REMOTE" \
+  --mode "$PUBLISH_MODE" \
+  --summary-out "$STAGE_SUMMARY"
+log_phase "stage done ($(( $(date +%s) - t0 ))s)"
+
+STAGED_MODE="$(python -c "import json; print(json.load(open('${STAGE_SUMMARY}'))['mode'])")"
+ADDED_COUNT="$(python -c "import json; print(len(json.load(open('${STAGE_SUMMARY}'))['added']))")"
+REMOVED_COUNT="$(python -c "import json; print(len(json.load(open('${STAGE_SUMMARY}'))['removed']))")"
 
 COMMIT_MSG="Deploy ${STAMP} — ${GRANULES} granules (${PNG_COUNT} PNGs)"
+if [[ "$STAGED_MODE" == "incremental" ]]; then
+  COMMIT_MSG="Deploy ${STAMP} — +${ADDED_COUNT} -${REMOVED_COUNT} granules (${GRANULES} total)"
+fi
+
 log_phase "git commit …"
 t0="$(date +%s)"
-if git diff --cached --quiet && ! git rev-parse --verify HEAD >/dev/null 2>&1; then
-  git -c user.name="${GIT_AUTHOR_NAME:-SIENA Flood Maps}" \
+if gitw diff --cached --quiet && ! gitw rev-parse --verify HEAD >/dev/null 2>&1; then
+  gitw -c user.name="${GIT_AUTHOR_NAME:-SIENA Flood Maps}" \
       -c user.email="${GIT_AUTHOR_EMAIL:-siena-floodmaps@users.noreply.github.com}" \
       commit -m "$COMMIT_MSG"
-elif git diff --cached --quiet; then
-  git -c user.name="${GIT_AUTHOR_NAME:-SIENA Flood Maps}" \
+elif gitw diff --cached --quiet; then
+  gitw -c user.name="${GIT_AUTHOR_NAME:-SIENA Flood Maps}" \
       -c user.email="${GIT_AUTHOR_EMAIL:-siena-floodmaps@users.noreply.github.com}" \
       commit --allow-empty -m "$COMMIT_MSG (unchanged)"
 else
-  git -c user.name="${GIT_AUTHOR_NAME:-SIENA Flood Maps}" \
+  gitw -c user.name="${GIT_AUTHOR_NAME:-SIENA Flood Maps}" \
       -c user.email="${GIT_AUTHOR_EMAIL:-siena-floodmaps@users.noreply.github.com}" \
       commit -m "$COMMIT_MSG"
 fi
 log_phase "git commit done ($(( $(date +%s) - t0 ))s)"
 
-DEPLOY_SHA="$(git rev-parse --short HEAD)"
+DEPLOY_SHA="$(gitw rev-parse --short HEAD)"
 log_phase "git push …"
 t0="$(date +%s)"
 git_push_gh_pages "$REMOTE"
 log_phase "git push done ($(( $(date +%s) - t0 ))s)"
 
-cd "$ROOT"
+mkdir -p "$STATE_DIR"
+cp "$CATALOG" "${STATE_DIR}/last_catalog.json"
 
 echo ""
-echo "Pushed gh-pages (${DEPLOY_SHA})."
+echo "Pushed gh-pages (${DEPLOY_SHA}, mode=${STAGED_MODE})."
 
 trigger_deploy_workflow() {
   if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
@@ -179,7 +187,7 @@ if trigger_deploy_workflow; then
 else
   echo "WARNING: gh-pages pushed but deploy workflow was NOT started." >&2
   echo "  Mac:  gh auth login" >&2
-  echo "  HPC:  ~/.config/floodmaps/credentials.env  (see scripts/Zaratan/credentials.env.example)" >&2
+  echo "  HPC:  ~/.config/floodmaps/credentials.env" >&2
   echo "  Or:   export GITHUB_TOKEN=<PAT>" >&2
   echo "  Or:   Actions → Deploy GitHub Pages → Run workflow" >&2
 fi
