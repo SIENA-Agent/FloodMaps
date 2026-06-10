@@ -11,7 +11,9 @@ See [README.md](README.md) for setup and update instructions.
 
 **Pages source (one-time):** Settings → Pages → **GitHub Actions** (not “Deploy from branch”).
 
-`.github/workflows/pages.yml` is started by `./scripts/publish.sh` via **workflow_dispatch** (after pushing `gh-pages`). Requires `gh auth login` or `GITHUB_TOKEN` on the machine running publish.
+`.github/workflows/pages.yml` is started by `./scripts/publish.sh` via **workflow_dispatch** (after pushing `gh-pages`).
+
+Auth: **Mac** `gh auth login` (preferred) or **any host** `~/.config/floodmaps/credentials.env` (see `scripts/Zaratan/credentials.env.example`).
 
 Pushing `gh-pages` alone does **not** reliably trigger Actions — publish always calls the workflow explicitly.
 

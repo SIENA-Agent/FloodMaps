@@ -63,6 +63,10 @@ cd "$ROOT"
 echo ""
 echo "Pushed gh-pages (${DEPLOY_SHA})."
 
+# Mac: gh auth login. HPC/cron: ~/.config/floodmaps/credentials.env
+# shellcheck disable=SC1091
+source "${ROOT}/scripts/load_github_credentials.sh"
+
 trigger_deploy_workflow() {
   if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
     echo "Triggering Deploy GitHub Pages workflow (gh)…"
@@ -88,8 +92,10 @@ if trigger_deploy_workflow; then
   echo "Deploy workflow started — usually live in 1–2 min."
 else
   echo "WARNING: gh-pages pushed but deploy workflow was NOT started." >&2
-  echo "  Fix: gh auth login   OR   export GITHUB_TOKEN=<PAT>" >&2
-  echo "  Or: Actions → Deploy GitHub Pages → Run workflow" >&2
+  echo "  Mac:  gh auth login" >&2
+  echo "  HPC:  ~/.config/floodmaps/credentials.env  (see scripts/Zaratan/credentials.env.example)" >&2
+  echo "  Or:   export GITHUB_TOKEN=<PAT>" >&2
+  echo "  Or:   Actions → Deploy GitHub Pages → Run workflow" >&2
 fi
 
 echo "  Actions: https://github.com/${REPO_SLUG}/actions"

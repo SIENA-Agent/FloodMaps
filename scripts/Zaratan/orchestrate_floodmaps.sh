@@ -10,6 +10,9 @@
 set -euo pipefail
 
 ZARATAN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FLOODMAPS_ROOT_EARLY="$(cd "${ZARATAN_DIR}/../.." && pwd)"
+# shellcheck disable=SC1091
+source "${FLOODMAPS_ROOT_EARLY}/scripts/load_github_credentials.sh"
 # shellcheck disable=SC1091
 source "${ZARATAN_DIR}/env.config.example.sh"
 [[ -f "${ZARATAN_DIR}/env.config.local.sh" ]] && source "${ZARATAN_DIR}/env.config.local.sh"

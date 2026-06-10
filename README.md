@@ -50,9 +50,13 @@ pip install -r requirements.txt
 
 **GitHub Pages (one-time):**
 1. Settings → Pages → source = **GitHub Actions**
-2. Auth for deploy trigger (Mac or HPC login node): `gh auth login` **or** `export GITHUB_TOKEN=<fine-grained PAT with Actions: Read and write>`
+2. Deploy auth (pick one):
+   - **Mac:** `gh auth login` (preferred if `gh` installed)
+   - **Mac or HPC:** `~/.config/floodmaps/credentials.env` — copy from `scripts/Zaratan/credentials.env.example` (never in repo)
 
-Each `./scripts/publish.sh` pushes `gh-pages`, then **explicitly starts** the deploy workflow (~1–2 min).
+`publish.sh` tries **gh** first, then **GITHUB_TOKEN** from env or the credentials file.
+
+Each `./scripts/publish.sh` pushes `gh-pages`, then starts the deploy workflow (~1–2 min).
 
 ## Preview locally
 
