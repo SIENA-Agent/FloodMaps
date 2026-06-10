@@ -67,7 +67,17 @@ python -m http.server 8080 --directory docs
 geotiffs/  →  build.sh  →  docs/ + data/catalog.json  →  publish.sh  →  gh-pages
 ```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md).
+## HPC (Zaratan)
+
+On UMD Zaratan: sync SIENA products → Slurm tile build → login-node publish.
+
+```bash
+cp scripts/Zaratan/env.config.example.sh scripts/Zaratan/env.config.local.sh
+# edit paths, then:
+bash scripts/Zaratan/orchestrate_floodmaps.sh
+```
+
+See [scripts/Zaratan/README.md](scripts/Zaratan/README.md) for setup, cron, and authorization.
 
 ## Classes
 

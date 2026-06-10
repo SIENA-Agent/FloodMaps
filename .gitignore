@@ -16,3 +16,7 @@ data/*
 docs/*
 !docs/README.md
 !docs/.gitkeep
+
+scripts/Zaratan/env.config.local.sh
+logs/
+floodmaps_build_*.out
