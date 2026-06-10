@@ -6,6 +6,7 @@
 #   bash scripts/Zaratan/orchestrate_floodmaps.sh --sync-only
 #   bash scripts/Zaratan/orchestrate_floodmaps.sh --no-publish
 #   bash scripts/Zaratan/orchestrate_floodmaps.sh --build-only
+#   bash scripts/Zaratan/orchestrate_floodmaps.sh --wait-publish   # block until push finishes
 #
 set -euo pipefail
 
@@ -20,6 +21,7 @@ source "${ZARATAN_DIR}/env.config.example.sh"
 SYNC_ONLY=0
 BUILD_ONLY=0
 NO_PUBLISH=0
+WAIT_PUBLISH=0
 POLL_SEC="${POLL_SEC:-60}"
 
 while [[ $# -gt 0 ]]; do
@@ -27,6 +29,7 @@ while [[ $# -gt 0 ]]; do
     --sync-only) SYNC_ONLY=1; shift ;;
     --build-only) BUILD_ONLY=1; shift ;;
     --no-publish) NO_PUBLISH=1; shift ;;
+    --wait-publish) WAIT_PUBLISH=1; shift ;;
     -h|--help)
       sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
@@ -119,8 +122,13 @@ if [[ "$NO_PUBLISH" -eq 1 ]]; then
 fi
 
 echo ""
-echo "Running publish on login node…"
-bash "${FLOODMAPS_ROOT}/scripts/publish.sh"
+if [[ "$WAIT_PUBLISH" -eq 1 ]]; then
+  echo "Running publish on login node (foreground — use --wait-publish only when SSH is stable)…"
+  bash "${FLOODMAPS_ROOT}/scripts/publish.sh"
+else
+  echo "Starting publish in background (SSH-safe)…"
+  bash "${ZARATAN_DIR}/publish_background.sh"
+fi
 
 echo ""
 echo "=== Orchestrator complete $(date -u) ==="

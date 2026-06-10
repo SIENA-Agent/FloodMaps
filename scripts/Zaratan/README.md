@@ -93,15 +93,43 @@ Options:
 |------|--------|
 | `--sync-only` | Copy/prune geotiffs only (30-day **sensing-date** window from granule folder names; demo 2025-12-14/17/19 always kept) |
 | `--build-only` | Skip sync; use existing `geotiffs/` |
-| `--no-publish` | Build only; run `./scripts/publish.sh` yourself later |
+| `--no-publish` | Build only; publish yourself later |
+| `--wait-publish` | Block until `publish.sh` finishes (default: background publish) |
+
+### Publish only (background)
+
+Large deploys (300k+ PNGs) can take a long time. Run in the background so SSH disconnects do not kill the job:
+
+```bash
+bash scripts/Zaratan/publish_background.sh
+tail -f logs/zaratan/publish_*.log
+```
+
+`publish.sh` stages on scratch (`.gh-pages-staging/`) with hardlinks — not a full copy to login-node `/tmp`.
+
+### Quick test (smaller dataset)
+
+If `geotiffs/` still has thousands of stale granules from an old full-tree sync, clear and re-sync:
+
+```bash
+rm -f geotiffs/*.tif
+KEEP_DAYS=1 bash scripts/Zaratan/sync_geotiffs.sh
+bash scripts/Zaratan/orchestrate_floodmaps.sh --build-only --no-publish
+bash scripts/Zaratan/publish_background.sh
+tail -f logs/zaratan/publish_*.log
+```
+
+`KEEP_DAYS=1` keeps demo dates (`20251214`, `20251217`, `20251219`) plus the last day of sensing dates.
 
 ## Cron (~every 30 min)
 
 Credentials file is loaded automatically (cron does not need `~/.bashrc`):
 
 ```cron
-*/30 * * * * cd /scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps && bash scripts/Zaratan/orchestrate_floodmaps.sh
+*/30 * * * * cd /scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps && bash scripts/Zaratan/orchestrate_floodmaps.sh --wait-publish
 ```
+
+Use `--wait-publish` in cron so the job does not overlap with a still-running background publish.
 
 Background (orchestrator writes its own log under `logs/zaratan/`):
 
@@ -120,7 +148,8 @@ Do **not** redirect nohup output to the same log file — that duplicates lines.
 | `credentials.env.example` | — | Template → `~/.config/floodmaps/credentials.env` |
 | `sync_geotiffs.sh` | login | SIENA_result → `geotiffs/` |
 | `slurm_build_floodmaps.template.sh` | compute | Runs `scripts/build.sh` |
-| `orchestrate_floodmaps.sh` | login | sync → sbatch → wait → publish |
+| `orchestrate_floodmaps.sh` | login | sync → sbatch → wait → background publish |
+| `publish_background.sh` | login | `nohup publish.sh` + log under `logs/zaratan/` |
 | `runtime_env.sh` | compute | `PYTHON_BIN` + PROJ/GDAL (no conda activate) |
 | `../load_github_credentials.sh` | login | Loads token from home dir |
 
@@ -139,6 +168,8 @@ Compute nodes have **no internet** — only `build.sh` runs there. `publish.sh` 
 ## Troubleshooting
 
 - **`gh: command not found`:** expected on Zaratan — use `~/.config/floodmaps/credentials.env`.
-- **Deploy not triggered:** `source ~/.config/floodmaps/credentials.env` then re-run publish; check token permissions.
+- **Deploy not triggered:** re-run `publish_background.sh`; check token permissions.
+- **Publish killed by SSH disconnect:** use `publish_background.sh`, not foreground `publish.sh`.
+- **Publish very slow:** first run still spends time on `git add`/`git push` for 300k+ files; use `KEEP_DAYS=1` test sync for a smaller trial.
 - **Build job fails:** see `floodmaps_build_<jobid>.out`; often missing `pip install -r requirements.txt`.
 - **No new tifs:** confirm `SIENA_OUTPUT_BASE` and `*_RGB_*.tif` under that tree.
