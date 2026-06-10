@@ -89,7 +89,7 @@ Options:
 
 | Flag | Effect |
 |------|--------|
-| `--sync-only` | Copy/prune geotiffs only (30-day retention; demo dates 2025-12-14/17/19 always kept) |
+| `--sync-only` | Copy/prune geotiffs only (30-day **sensing-date** window from granule folder names; demo 2025-12-14/17/19 always kept) |
 | `--build-only` | Skip sync; use existing `geotiffs/` |
 | `--no-publish` | Build only; run `./scripts/publish.sh` yourself later |
 
