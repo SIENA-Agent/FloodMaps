@@ -7,7 +7,7 @@ How we display palette GeoTIFFs on GitHub Pages, and how to scale for HPC-driven
 | Parameter | Plan |
 |-----------|------|
 | New granules | ~100 per sensing day |
-| Retention | 3–5 days in local `geotiffs/` |
+| Retention | 30 days in local `geotiffs/` + demo dates 20251214/17/19 always kept |
 | **`main` branch** | Scripts + viewer source only (~1 MB) |
 | **`gh-pages` branch** | Current built site (~40–450 MB), **one commit**, force-replaced each deploy |
 | Update cadence | HPC cron ~30 min: refresh geotiffs → `build.sh` → `publish.sh` |

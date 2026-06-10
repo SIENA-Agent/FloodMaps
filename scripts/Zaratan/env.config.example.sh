@@ -22,7 +22,9 @@ export PYTHON_BIN="${PYTHON_BIN:-${CONDA_BASE}/envs/${FLOODMAPS_PYTHON_ENV}/bin/
 # ---- Build ----
 export WORKERS="${WORKERS:-8}"
 export BASE_PATH="${BASE_PATH:-/FloodMaps/}"
-export KEEP_DAYS="${KEEP_DAYS:-5}"
+export KEEP_DAYS="${KEEP_DAYS:-30}"
+# Sensing dates (YYYYMMDD) always kept for demo — never pruned
+export KEEP_DEMO_DATES="${KEEP_DEMO_DATES:-20251214 20251217 20251219}"
 
 # ---- Slurm (compute node — tile bake) ----
 export SLURM_PARTITION="${SLURM_PARTITION:-standard}"

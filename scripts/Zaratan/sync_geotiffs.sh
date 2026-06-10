@@ -18,10 +18,20 @@ if [[ ! -d "$SIENA_OUTPUT_BASE" ]]; then
   exit 1
 fi
 
+is_demo_date() {
+  local sdate="$1"
+  local d
+  for d in ${KEEP_DEMO_DATES}; do
+    [[ "$sdate" == "$d" ]] && return 0
+  done
+  return 1
+}
+
 echo "=== sync geotiffs ==="
 echo "Source:  ${SIENA_OUTPUT_BASE}  (*_RGB_*.tif)"
 echo "Target:  ${GEOTIFF_DIR}"
 echo "Keep:    ${KEEP_DAYS} day(s) of sensing dates"
+echo "Demo:    always keep ${KEEP_DEMO_DATES}"
 echo ""
 
 NEW=0
@@ -46,11 +56,16 @@ echo "Copied ${NEW} new/updated file(s), skipped ${SKIPPED} unchanged."
 if [[ "${KEEP_DAYS}" -gt 0 ]]; then
   CUTOFF="$(date -u -d "${KEEP_DAYS} days ago" +%Y%m%d 2>/dev/null || date -u -v-"${KEEP_DAYS}"d +%Y%m%d)"
   PRUNED=0
+  KEPT_DEMO=0
   for tif in "$GEOTIFF_DIR"/*.tif; do
     [[ -f "$tif" ]] || continue
     name="$(basename "$tif")"
     if [[ "$name" =~ ([0-9]{8})T[0-9]{6} ]]; then
       sdate="${BASH_REMATCH[1]}"
+      if is_demo_date "$sdate"; then
+        KEPT_DEMO=$((KEPT_DEMO + 1))
+        continue
+      fi
       if [[ "$sdate" < "$CUTOFF" ]]; then
         rm -f "$tif"
         PRUNED=$((PRUNED + 1))
@@ -58,7 +73,7 @@ if [[ "${KEEP_DAYS}" -gt 0 ]]; then
       fi
     fi
   done
-  echo "Pruned ${PRUNED} file(s) older than ${KEEP_DAYS} days."
+  echo "Pruned ${PRUNED} file(s) older than ${KEEP_DAYS} days (${KEPT_DEMO} demo date file(s) protected)."
 fi
 
 TOTAL="$(find "$GEOTIFF_DIR" -maxdepth 1 -name '*.tif' | wc -l | tr -d ' ')"
