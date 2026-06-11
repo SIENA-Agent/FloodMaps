@@ -39,6 +39,9 @@ Globus daily ZIP → Mac `geotiffs/` (`bash scripts/globus/sync_geotiffs_from_zi
 
 ```bash
 pip install -r requirements.txt
+# all-in-one (background): bash scripts/mac/orchestrate_build_publish.sh
+# or step by step:
+bash scripts/globus/sync_geotiffs_from_zip.sh
 ./scripts/build.sh
 PUBLISH_FULL=1 ./scripts/publish.sh    # or: ./scripts/publish.sh --full
 ```

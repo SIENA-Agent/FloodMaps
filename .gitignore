@@ -20,6 +20,7 @@ docs/*
 
 scripts/Zaratan/env.config.local.sh
 scripts/globus/env.config.local.sh
+scripts/mac/env.config.local.sh
 logs/
 floodmaps_build_*.out
 .gh-pages-staging/
