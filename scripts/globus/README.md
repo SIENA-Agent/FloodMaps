@@ -14,8 +14,8 @@ bash scripts/globus/sync_geotiffs_from_zip.sh
 
 What it does:
 
-1. `globus ls` on `ZIP/SIENA/` (one level — seconds, not minutes)
-2. Transfer latest **2** daily zips (configurable) → `geotiffs/.zip-staging/incoming/`
+1. Pick latest **2** UTC calendar zips (`YYYY-MM-DD.zip`; optional `globus ls` discovery)
+2. **Always transfer** those zips → `geotiffs/.zip-staging/incoming/` (use `--skip-existing` to skip)
 3. **`globus task wait`** until transfer finishes
 4. Unzip → copy RGB GeoTIFFs → `geotiffs/` → delete zip + extract tree
 
@@ -25,7 +25,7 @@ Options:
 bash scripts/globus/sync_geotiffs_from_zip.sh --dry-run
 bash scripts/globus/sync_geotiffs_from_zip.sh --zip-count 3
 bash scripts/globus/sync_geotiffs_from_zip.sh --skip-transfer   # process zips already in incoming/
-bash scripts/globus/sync_geotiffs_from_zip.sh --force             # re-download / re-process
+bash scripts/globus/sync_geotiffs_from_zip.sh --skip-existing     # skip if already transferred
 ```
 
 Logs: `logs/globus/sync_zip_*.log`

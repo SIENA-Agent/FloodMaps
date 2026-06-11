@@ -265,7 +265,12 @@ def main() -> None:
     )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--skip-transfer", action="store_true", help="Only process zips already in incoming/")
-    parser.add_argument("--force", action="store_true", help="Re-process even if .done marker exists")
+    parser.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="Skip transfer/process when zip already done or in incoming/ (default: always refresh)",
+    )
+    parser.add_argument("--force", action="store_true", help="Alias for --skip-existing (deprecated)")
     parser.add_argument(
         "--calendar-only",
         action="store_true",
@@ -318,89 +323,95 @@ def main() -> None:
     print(f"staging:    {staging}")
     print()
 
-    if not args.skip_transfer:
+    skip_existing = args.skip_existing or args.force
+
+    print("Selecting zip archives…")
+    if args.dates:
+        selected = [
+            (d.strip(), f"{d.strip()}.zip")
+            for d in args.dates.split(",")
+            if d.strip()
+        ]
+        method = "explicit"
+    elif args.skip_transfer:
+        local_names = sorted(
+            [p.name for p in incoming.glob("*.zip") if ZIP_BASENAME_RE.match(p.name)],
+            reverse=True,
+        )[: args.zip_count]
+        selected = [(n[:-4], n) for n in local_names]
+        method = "incoming"
+    else:
         require_globus()
-        print("Selecting zip archives…")
-        if args.dates:
-            selected = [
-                (d.strip(), f"{d.strip()}.zip")
-                for d in args.dates.split(",")
-                if d.strip()
-            ]
-            method = "explicit"
-        else:
-            selected, method = select_zip_archives(
-                src_ep,
-                zip_base,
-                args.zip_count,
-                discover=not args.calendar_only,
-            )
-        print(f"  method: {method}")
-        for day, name in selected:
-            print(f"  → {name} ({day})")
+        selected, method = select_zip_archives(
+            src_ep,
+            zip_base,
+            args.zip_count,
+            discover=not args.calendar_only,
+        )
+    print(f"  method: {method}")
+    for day, name in selected:
+        print(f"  → {name} ({day})")
 
-        to_transfer: list[str] = []
-        for _day, name in selected:
-            marker = done_dir / f"{name}.done"
-            local_zip = incoming / name
-            if marker.is_file() and not args.force:
-                print(f"  skip transfer (done): {name}")
-                continue
-            if local_zip.is_file() and not args.force:
-                print(f"  skip transfer (already in incoming): {name}")
-                continue
-            to_transfer.append(name)
+    to_transfer: list[str] = []
+    for _day, name in selected:
+        marker = done_dir / f"{name}.done"
+        local_zip = incoming / name
+        if skip_existing and marker.is_file():
+            print(f"  skip transfer (done): {name}")
+            continue
+        if skip_existing and local_zip.is_file():
+            print(f"  skip transfer (already in incoming): {name}")
+            continue
+        to_transfer.append(name)
 
-        if args.dry_run:
-            print()
-            print(f"DRY RUN — would transfer {len(to_transfer)} zip(s), then unzip/copy")
-            for name in to_transfer:
-                print(f"    {src_ep}:{zip_base.rstrip('/')}/{name}")
-                print(f"    → {dst_ep}:{incoming / name}")
-            return
-
-        if to_transfer:
-            print()
-            print(f"Submitting Globus transfer ({len(to_transfer)} zip(s))…")
-            task_ids = submit_zip_transfers(
-                to_transfer,
-                src_ep=src_ep,
-                zip_base=zip_base,
-                dst_ep=dst_ep,
-                incoming_dir=incoming,
-                label=f"FloodMaps-zip-{stamp}",
-            )
-            for task_id in task_ids:
-                print(f"  task: {task_id}")
-            print("  waiting for transfer(s)…")
-            for task_id in task_ids:
-                wait_task(task_id, log_path)
-            print("  transfer complete.")
-        else:
-            print()
-            print("No new zips to transfer.")
-    elif args.dry_run:
-        print("DRY RUN — skip-transfer mode")
+    if args.dry_run:
+        print()
+        print(f"DRY RUN — would transfer {len(to_transfer)} zip(s), then unzip/copy")
+        for name in to_transfer:
+            print(f"    {src_ep}:{zip_base.rstrip('/')}/{name}")
+            print(f"    → {dst_ep}:{incoming / name}")
         return
 
-    # Process all zips in incoming/ (selected latest N by date if multiple present)
-    local_zips = sorted(
-        [p for p in incoming.glob("*.zip") if ZIP_BASENAME_RE.match(p.name)],
-        key=lambda p: p.name,
-        reverse=True,
-    )[: args.zip_count]
+    if not args.skip_transfer and to_transfer:
+        print()
+        print(f"Submitting Globus transfer ({len(to_transfer)} zip(s))…")
+        task_ids = submit_zip_transfers(
+            to_transfer,
+            src_ep=src_ep,
+            zip_base=zip_base,
+            dst_ep=dst_ep,
+            incoming_dir=incoming,
+            label=f"FloodMaps-zip-{stamp}",
+        )
+        for task_id in task_ids:
+            print(f"  task: {task_id}")
+        print("  waiting for transfer(s)…")
+        for task_id in task_ids:
+            wait_task(task_id, log_path)
+        print("  transfer complete.")
+    elif not args.skip_transfer:
+        print()
+        print("No zips queued for transfer (--skip-existing skipped all).")
 
-    if not local_zips:
-        print("No zip files in incoming/ to process.")
+    zip_names_to_process = [name for _day, name in selected]
+    if skip_existing:
+        zip_names_to_process = [
+            name
+            for name in zip_names_to_process
+            if not (done_dir / f"{name}.done").is_file()
+        ]
+
+    if not zip_names_to_process:
+        print("No zips selected to process.")
         return
 
     total_copied = 0
     print()
     print("Processing zips (unzip → copy RGB → cleanup)…")
-    for zip_path in local_zips:
-        marker = done_dir / f"{zip_path.name}.done"
-        if marker.is_file() and not args.force:
-            print(f"  skip process (done): {zip_path.name}")
+    for name in zip_names_to_process:
+        zip_path = incoming / name
+        if not zip_path.is_file():
+            print(f"  missing after transfer: {name}", file=sys.stderr)
             continue
 
         day = ZIP_BASENAME_RE.match(zip_path.name).group(1)  # type: ignore[union-attr]
