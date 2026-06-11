@@ -40,6 +40,7 @@ UUID_RE = re.compile(
 
 # User production naming; also matches *_RGB_*.tif from Zaratan sync script.
 RGB_NAME_MARKERS = ("_2classes_RGB", "_RGB_")
+DEFAULT_ZIP_SYNC_COUNT = 3
 
 
 def require_globus() -> None:
@@ -82,7 +83,7 @@ def globus_ls(endpoint: str, remote_dir: str) -> list[str]:
 
 
 def calendar_zip_candidates(count: int) -> list[tuple[str, str]]:
-    """Latest `count` UTC calendar days as (YYYY-MM-DD, YYYY-MM-DD.zip)."""
+    """Latest `count` days by zip filename date (UTC today, today-1, …) — not file mtime."""
     today = datetime.now(timezone.utc).date()
     out: list[tuple[str, str]] = []
     for i in range(count):
@@ -260,8 +261,11 @@ def main() -> None:
     parser.add_argument(
         "--zip-count",
         type=int,
-        default=int(os.environ.get("ZIP_SYNC_COUNT", "2")),
-        help="How many latest daily zips to sync (default: 2)",
+        default=int(os.environ.get("ZIP_SYNC_COUNT", str(DEFAULT_ZIP_SYNC_COUNT))),
+        help=(
+            "Latest N days by zip filename (YYYY-MM-DD.zip, UTC calendar); "
+            f"default: {DEFAULT_ZIP_SYNC_COUNT} or ZIP_SYNC_COUNT env"
+        ),
     )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--skip-transfer", action="store_true", help="Only process zips already in incoming/")
@@ -319,7 +323,7 @@ def main() -> None:
     print(f"time:       {datetime.now(timezone.utc).isoformat()}")
     print(f"zip remote: {src_ep}:{zip_base}")
     print(f"geotiffs:   {geotiff_dir}")
-    print(f"latest:     {args.zip_count} zip file(s)")
+    print(f"latest:     {args.zip_count} day(s) by filename date (UTC)")
     print(f"staging:    {staging}")
     print()
 

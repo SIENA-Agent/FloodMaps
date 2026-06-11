@@ -16,7 +16,8 @@ export SIENA_OUTPUT_BASE="${SIENA_OUTPUT_BASE:-/scratch/zt1/project/zt-PROJECT/s
 
 # Daily ZIP archives (fast Mac sync — recommended)
 export SIENA_ZIP_BASE="${SIENA_ZIP_BASE:-/scratch/zt1/project/zt-PROJECT/shared/data/routine_production/ZIP/SIENA}"
-export ZIP_SYNC_COUNT="${ZIP_SYNC_COUNT:-2}"
+# Latest N daily zips by filename date YYYY-MM-DD.zip (UTC calendar, not mtime)
+export ZIP_SYNC_COUNT="${ZIP_SYNC_COUNT:-3}"
 
 # ---- Retention (same as scripts/Zaratan/sync_geotiffs.sh) ----
 export KEEP_DAYS="${KEEP_DAYS:-30}"

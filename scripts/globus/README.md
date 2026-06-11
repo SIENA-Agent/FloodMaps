@@ -14,7 +14,7 @@ bash scripts/globus/sync_geotiffs_from_zip.sh
 
 What it does:
 
-1. Pick latest **2** UTC calendar zips (`YYYY-MM-DD.zip`; optional `globus ls` discovery)
+1. Pick latest **3** days by zip **filename** (`YYYY-MM-DD.zip`, UTC calendar — not mtime)
 2. **Always transfer** those zips → `geotiffs/.zip-staging/incoming/` (use `--skip-existing` to skip)
 3. **`globus task wait`** until transfer finishes
 4. Unzip → copy RGB GeoTIFFs → `geotiffs/` → delete zip + extract tree
@@ -23,7 +23,8 @@ Options:
 
 ```bash
 bash scripts/globus/sync_geotiffs_from_zip.sh --dry-run
-bash scripts/globus/sync_geotiffs_from_zip.sh --zip-count 3
+bash scripts/globus/sync_geotiffs_from_zip.sh --zip-count 5
+export ZIP_SYNC_COUNT=5 && bash scripts/globus/sync_geotiffs_from_zip.sh
 bash scripts/globus/sync_geotiffs_from_zip.sh --skip-transfer   # process zips already in incoming/
 bash scripts/globus/sync_geotiffs_from_zip.sh --skip-existing     # skip if already transferred
 ```
@@ -43,7 +44,7 @@ Then build & publish:
 |----------|---------|
 | `FLOODMAPS_ROOT` | Mac repo path |
 | `SIENA_ZIP_BASE` | HPC path to daily zips |
-| `ZIP_SYNC_COUNT` | Latest N zip files (default `2`) |
+| `ZIP_SYNC_COUNT` | Latest N days by zip filename (default `3`, UTC) |
 | `GLOBUS_SRC_ENDPOINT` | Zaratan DTN UUID |
 | `GLOBUS_DST_ENDPOINT` | Mac GCP UUID |
 

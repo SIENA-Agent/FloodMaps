@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sync latest SIENA daily ZIPs from Zaratan → unzip → geotiffs/*.tif
+# Sync latest N daily ZIPs (filename date YYYY-MM-DD.zip, default 3) → geotiffs/*.tif
 #
 #   bash scripts/globus/sync_geotiffs_from_zip.sh
 #   bash scripts/globus/sync_geotiffs_from_zip.sh --dry-run
