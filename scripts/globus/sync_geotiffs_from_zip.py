@@ -139,22 +139,42 @@ def is_rgb_tif(path: Path) -> bool:
     return any(marker in path.name for marker in RGB_NAME_MARKERS)
 
 
-def submit_batch_transfer(
-    pairs: list[tuple[str, str]], label: str
-) -> str | None:
-    if not pairs:
-        return None
+def _parse_task_id(output: str) -> str | None:
+    match = TASK_UUID_RE.search(output)
+    return match.group(0) if match else None
+
+
+def submit_zip_transfers(
+    zip_names: list[str],
+    *,
+    src_ep: str,
+    zip_base: str,
+    dst_ep: str,
+    incoming_dir: Path,
+    label: str,
+) -> list[str]:
+    """Submit transfers for named zips. Returns Globus task ID(s)."""
+    if not zip_names:
+        return []
+
+    incoming_dir.mkdir(parents=True, exist_ok=True)
+    src_spec = f"{src_ep}:{zip_base.rstrip('/')}/"
+    dst_spec = f"{dst_ep}:{incoming_dir}/"
+
+    # Globus CLI 3.x batch: endpoint prefixes on CLI, relative names in batch file.
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".txt", delete=False, encoding="utf-8"
     ) as batch:
-        for src, dst in pairs:
-            batch.write(f"{src} {dst}\n")
+        for name in zip_names:
+            batch.write(f"{name} {name}\n")
         batch_path = batch.name
 
     proc = subprocess.run(
         [
             "globus",
             "transfer",
+            src_spec,
+            dst_spec,
             "--batch",
             batch_path,
             "--label",
@@ -168,10 +188,42 @@ def submit_batch_transfer(
     )
     os.unlink(batch_path)
     out = (proc.stdout or "") + (proc.stderr or "")
-    if proc.returncode != 0:
-        raise SystemExit(f"globus transfer --batch failed:\n{out}")
-    match = TASK_UUID_RE.search(out)
-    return match.group(0) if match else None
+    task_id = _parse_task_id(out)
+    if proc.returncode == 0 and task_id:
+        return [task_id]
+
+    # Fallback: one transfer per zip (matches manual globus transfer usage).
+    task_ids: list[str] = []
+    errors: list[str] = []
+    if out.strip():
+        errors.append(f"batch attempt failed:\n{out}")
+    for i, name in enumerate(zip_names):
+        src = f"{src_ep}:{zip_base.rstrip('/')}/{name}"
+        dst = f"{dst_ep}:{incoming_dir / name}"
+        proc = subprocess.run(
+            [
+                "globus",
+                "transfer",
+                src,
+                dst,
+                "--label",
+                f"{label}-{i}",
+                "--notify",
+                "on",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        one_out = (proc.stdout or "") + (proc.stderr or "")
+        tid = _parse_task_id(one_out)
+        if proc.returncode == 0 and tid:
+            task_ids.append(tid)
+        else:
+            errors.append(f"{name}:\n{one_out}")
+    if not task_ids:
+        raise SystemExit("globus transfer failed:\n" + "\n".join(errors))
+    return task_ids
 
 
 def wait_task(task_id: str, log_path: Path | None) -> None:
@@ -287,7 +339,7 @@ def main() -> None:
         for day, name in selected:
             print(f"  → {name} ({day})")
 
-        transfer_pairs: list[tuple[str, str]] = []
+        to_transfer: list[str] = []
         for _day, name in selected:
             marker = done_dir / f"{name}.done"
             local_zip = incoming / name
@@ -297,26 +349,32 @@ def main() -> None:
             if local_zip.is_file() and not args.force:
                 print(f"  skip transfer (already in incoming): {name}")
                 continue
-            src = f"{src_ep}:{zip_base.rstrip('/')}/{name}"
-            dst = f"{dst_ep}:{local_zip}"
-            transfer_pairs.append((src, dst))
+            to_transfer.append(name)
 
         if args.dry_run:
             print()
-            print(f"DRY RUN — would transfer {len(transfer_pairs)} zip(s), then unzip/copy")
+            print(f"DRY RUN — would transfer {len(to_transfer)} zip(s), then unzip/copy")
+            for name in to_transfer:
+                print(f"    {src_ep}:{zip_base.rstrip('/')}/{name}")
+                print(f"    → {dst_ep}:{incoming / name}")
             return
 
-        if transfer_pairs:
+        if to_transfer:
             print()
-            print(f"Submitting Globus transfer ({len(transfer_pairs)} zip(s))…")
-            task_id = submit_batch_transfer(
-                transfer_pairs, label=f"FloodMaps-zip-{stamp}"
+            print(f"Submitting Globus transfer ({len(to_transfer)} zip(s))…")
+            task_ids = submit_zip_transfers(
+                to_transfer,
+                src_ep=src_ep,
+                zip_base=zip_base,
+                dst_ep=dst_ep,
+                incoming_dir=incoming,
+                label=f"FloodMaps-zip-{stamp}",
             )
-            if not task_id:
-                raise SystemExit("Could not parse Globus task ID")
-            print(f"  task: {task_id}")
-            print("  waiting for transfer…")
-            wait_task(task_id, log_path)
+            for task_id in task_ids:
+                print(f"  task: {task_id}")
+            print("  waiting for transfer(s)…")
+            for task_id in task_ids:
+                wait_task(task_id, log_path)
             print("  transfer complete.")
         else:
             print()
