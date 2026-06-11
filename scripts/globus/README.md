@@ -1,163 +1,99 @@
-# Globus — HPC (Zaratan) → Mac geotiffs
+# Globus — Zaratan SIENA_result → Mac geotiffs
 
-Transfer `geotiffs/*.tif` from Zaratan to your Mac for local **build** and **publish** (fast SSD, no NFS git pain).
+Sync `*_RGB_*.tif` from HPC routine production into local `geotiffs/` for Mac **build** and **publish**.
 
-**Recommended source on HPC:** `FloodMaps/geotiffs/` after `sync_geotiffs.sh` (30-day window + demo dates), not the full `SIENA_result` tree.
+## Prerequisites
 
-## Authorization checklist
+| Item | Notes |
+|------|--------|
+| Globus CLI | `pip install 'globus-cli'` then `globus login` |
+| Globus Connect Personal | Mac app running; repo folder writable in GCP preferences |
+| `env.config.local.sh` | Copy from `env.config.example.sh`; set endpoint UUIDs + paths |
+| Zaratan access | Same scratch path you use over SSH |
 
-| Step | What | Where |
-|------|------|--------|
-| 1 | **Globus account** | https://app.globus.org — use UMD institutional login if offered |
-| 2 | **Zaratan / scratch access** | Same as your SSH project (`zt1/project/henryqy-prj/...`) — PI must have granted you scratch |
-| 3 | **Globus read on scratch** | UMD HPC Globus collection must expose `/scratch/zt1/...` — see [UMD HPCC Globus help](https://hpcc.umd.edu/hpcc/help/globus.html) |
-| 4 | **Globus Connect Personal (Mac)** | Install + sign in with same Globus identity — [install guide](https://docs.globus.org/globus-connect-personal/install/) |
-| 5 | **Writable Mac folder** | In GCP preferences, allow writes to your FloodMaps repo (e.g. `~/Downloads/Web_Geodata_Visualization`) |
-| 6 | **First transfer consent** | Globus may email you to approve HPC → Mac transfer — click **Allow** |
-
-You do **not** need a separate API key for basic CLI transfers after `globus login`.
-
-## One-time Mac setup
-
-### 1. Install tools
+Find UUIDs:
 
 ```bash
-# Globus CLI (pick one)
-brew install globus-cli
-# or: pip install 'globus-cli'
-
-# Globus Connect Personal (Mac app)
-# https://docs.globus.org/globus-connect-personal/install/
-```
-
-### 2. Log in
-
-```bash
-globus login
-globus whoami
-```
-
-### 3. Start Globus Connect Personal
-
-- Open the **Globus Connect Personal** app on your Mac
-- Sign in with the **same** Globus account
-- **Preferences → Accessible Directories** → add your repo parent folder, e.g.  
-  `/Users/qyang/Downloads/Web_Geodata_Visualization`
-
-### 4. Find collection UUIDs
-
-```bash
-cd /Users/qyang/Downloads/Web_Geodata_Visualization
 bash scripts/globus/find_endpoints.sh
 ```
 
-Or in the **Globus web app** (File Manager):
+Typical UMD collections: **Zaratan DTN** (scratch / `SIENA_result`) → Mac **GCP endpoint**.
 
-1. Search collections for **UMD** / **Zaratan** / **scratch** → open → copy UUID from URL (`origin_id=...`)
-2. Your Mac endpoint appears under **Endpoints** → your GCP name → copy UUID
-
-### 5. Local config (not committed)
+## Config
 
 ```bash
 cp scripts/globus/env.config.example.sh scripts/globus/env.config.local.sh
-vim scripts/globus/env.config.local.sh
 ```
 
-Set at minimum:
+Edit `env.config.local.sh`:
+
+- `FLOODMAPS_ROOT` — your Mac clone path
+- `SIENA_OUTPUT_BASE` — `.../routine_production/SIENA_result` on scratch
+- `GLOBUS_SRC_ENDPOINT` — Zaratan DTN UUID
+- `GLOBUS_DST_ENDPOINT` — Mac GCP UUID
+
+## Routine sync (recommended)
 
 ```bash
-export GLOBUS_SRC_ENDPOINT='xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'  # Zaratan scratch
-export GLOBUS_DST_ENDPOINT='yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy'  # Mac GCP
+cd $FLOODMAPS_ROOT
+bash scripts/globus/sync_geotiffs.sh
 ```
 
-Paths default to:
+What it does:
 
-| Variable | Default |
-|----------|---------|
-| `HPC_GEOTIFF_PATH` | `.../FloodMaps/geotiffs` on Zaratan |
-| `MAC_GEOTIFF_DIR` | `$FLOODMAPS_ROOT/geotiffs` on Mac |
+1. Recursive Globus listing of `SIENA_result` (granule folders)
+2. Keeps **last 30 days** by Sentinel-1 **sensing date** + demo dates `20251214`, `20251217`, `20251219`
+3. Transfers only `*_RGB_*.tif` **missing** from local `geotiffs/` (flat filenames)
+4. Prunes local `.tif` outside the window (demos kept)
 
-## Routine workflow
-
-### On Zaratan (login node) — refresh HPC geotiffs
+Options:
 
 ```bash
-cd /scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps
-bash scripts/Zaratan/sync_geotiffs.sh
+bash scripts/globus/sync_geotiffs.sh --dry-run   # plan only
+bash scripts/globus/sync_geotiffs.sh --wait      # wait for Globus task
+bash scripts/globus/sync_geotiffs.sh --no-prune  # skip local cleanup
 ```
 
-This copies/prunes `*_RGB_*.tif` into `geotiffs/` (30 days + demo dates).
+Logs: `logs/globus/sync_*.log`
 
-### On Mac — Globus transfer
-
-```bash
-cd /Users/qyang/Downloads/Web_Geodata_Visualization
-
-# GCP app running
-bash scripts/globus/transfer_geotiffs.sh --verify
-```
-
-- First run: transfers all `.tif` (can take a while — GB scale)
-- Later runs: `--sync-level checksum` (default) skips unchanged files
-
-Logs: `logs/globus/transfer_*.log`
-
-### On Mac — build & publish
+## Build & publish on Mac
 
 ```bash
-pip install -r requirements.txt   # once
 ./scripts/build.sh
-./scripts/publish.sh                # incremental if site already live
-# or bootstrap / restore: PUBLISH_FULL=1 ./scripts/publish.sh
+./scripts/publish.sh
+# bootstrap / full restore: PUBLISH_FULL=1 ./scripts/publish.sh
 ```
 
 ## Scripts
 
 | File | Role |
 |------|------|
-| `env.config.example.sh` | Template paths + endpoint UUID placeholders |
-| `env.config.local.sh` | Your UUIDs (gitignored — create from example) |
-| `find_endpoints.sh` | List/search endpoints after `globus login` |
-| `transfer_geotiffs.sh` | Submit HPC → Mac recursive transfer |
+| `sync_geotiffs.sh` | **Main** — incremental SIENA → Mac via Globus |
+| `sync_geotiffs_globus.py` | Listing, retention filter, batch transfer |
+| `siena_retention.py` | 30-day + demo date rules (shared with Zaratan logic) |
+| `find_endpoints.sh` | Discover collection UUIDs |
+| `transfer_geotiffs.sh` | Bulk copy of flat HPC `geotiffs/` (optional legacy) |
+| `env.config.local.sh` | Your paths/UUIDs (gitignored) |
 
-### Options
+## Monitor transfers
 
-```bash
-bash scripts/globus/transfer_geotiffs.sh --dry-run   # print command only
-bash scripts/globus/transfer_geotiffs.sh --verify    # wait until complete
-```
-
-Monitor in browser: https://app.globus.org/activity
+https://app.globus.org/activity
 
 ```bash
 globus task list
-globus task show <TASK_ID>
+globus task wait <TASK_ID>
 ```
-
-## Web app alternative
-
-If you already use https://app.globus.org/file-manager:
-
-| Panel | Path |
-|-------|------|
-| **Source** | Zaratan collection → `/scratch/zt1/project/henryqy-prj/shared/code/gateway/FloodMaps/geotiffs` |
-| **Destination** | Your Mac GCP → `/Users/qyang/Downloads/Web_Geodata_Visualization/geotiffs` |
-
-Select all `*.tif` → **Transfer or sync to…** → enable sync if updating.
-
-CLI scripts use the same paths and are easier to repeat.
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| `Permission denied` on HPC path | Confirm SSH can read path; ask PI for scratch + Globus mapping |
-| Destination not activated | Start Globus Connect Personal on Mac |
-| `403` / consent required | Approve transfer in email or https://app.globus.org/activity |
-| `REPLACE_WITH_*` error | Fill `env.config.local.sh` |
-| Transfer slow | Expected for first full 30-day set; later sync is incremental |
-| Wrong files on Mac | Source should be `geotiffs/` not full `SIENA_result` |
+| `globus ls failed` | Check `SIENA_OUTPUT_BASE` and Zaratan DTN UUID |
+| Destination not active | Start Globus Connect Personal |
+| Consent / 403 | Approve transfer in Globus activity or email |
+| First sync slow | Many missing files (~1–1.5 GB for 30 days); later runs are small |
+| `REPLACE_WITH_*` | Fill `env.config.local.sh` |
 
-## Size expectations
+## Web UI
 
-~2000 granules × ~0.5–0.7 MB ≈ **1–1.5 GB** of GeoTIFFs for 30 days. Globus handles this well; first transfer may take tens of minutes depending on network.
+Same logic manually: source = Zaratan DTN → `SIENA_result/<granule>/*_RGB_*.tif`, dest = Mac GCP → `geotiffs/`. The script automates retention + missing-only transfers.
