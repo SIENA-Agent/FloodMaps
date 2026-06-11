@@ -35,7 +35,7 @@ See `docs/README.md` and `data/README.md` for build output details.
 ## Deploy workflow (Mac bootstrap → HPC updates)
 
 **Phase 1 — Mac (one-time full site)**  
-Globus SIENA_result → Mac `geotiffs/` (`bash scripts/globus/sync_geotiffs.sh`, see [scripts/globus/README.md](scripts/globus/README.md)) → build → full publish:
+Globus daily ZIP → Mac `geotiffs/` (`bash scripts/globus/sync_geotiffs_from_zip.sh`, see [scripts/globus/README.md](scripts/globus/README.md)) → build → full publish:
 
 ```bash
 pip install -r requirements.txt

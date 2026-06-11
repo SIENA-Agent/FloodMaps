@@ -7,6 +7,7 @@ __pycache__/
 # Local source GeoTIFFs — never in git
 geotiffs/*.tif
 geotiffs/*.tiff
+geotiffs/.zip-staging/
 
 # Build outputs (scripts/build.sh) — folder READMEs stay in git
 data/*

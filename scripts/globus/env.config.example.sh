@@ -11,8 +11,12 @@
 export FLOODMAPS_ROOT="${FLOODMAPS_ROOT:-$HOME/Downloads/Web_Geodata_Visualization}"
 export MAC_GEOTIFF_DIR="${MAC_GEOTIFF_DIR:-${FLOODMAPS_ROOT}/geotiffs}"
 
-# ---- HPC SIENA routine production (granule subfolders with *_RGB_*.tif) ----
+# ---- HPC SIENA routine production ----
 export SIENA_OUTPUT_BASE="${SIENA_OUTPUT_BASE:-/scratch/zt1/project/zt-PROJECT/shared/data/routine_production/SIENA_result}"
+
+# Daily ZIP archives (fast Mac sync — recommended)
+export SIENA_ZIP_BASE="${SIENA_ZIP_BASE:-/scratch/zt1/project/zt-PROJECT/shared/data/routine_production/ZIP/SIENA}"
+export ZIP_SYNC_COUNT="${ZIP_SYNC_COUNT:-2}"
 
 # ---- Retention (same as scripts/Zaratan/sync_geotiffs.sh) ----
 export KEEP_DAYS="${KEEP_DAYS:-30}"
