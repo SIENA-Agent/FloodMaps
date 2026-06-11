@@ -21,13 +21,14 @@ import subprocess
 import sys
 import tempfile
 import zipfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from config_loader import load_globus_config
 
 ROOT = Path(__file__).resolve().parents[2]
-ZIP_DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})\.zip$", re.I)
+ZIP_BASENAME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})\.zip$", re.I)
+ZIP_IN_LINE_RE = re.compile(r"(\d{4}-\d{2}-\d{2}\.zip)", re.I)
 TASK_UUID_RE = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
     re.I,
@@ -50,6 +51,17 @@ def require_globus() -> None:
         ) from exc
 
 
+def _basename_from_ls_line(raw: str) -> str:
+    """Normalize one globus ls line to a filename (handles paths and ls -l style)."""
+    line = raw.strip()
+    if not line or line in (".", ".."):
+        return ""
+    # ls -l style: permissions ... filename
+    token = line.split()[-1] if " " in line else line
+    token = token.rstrip("/")
+    return Path(token).name
+
+
 def globus_ls(endpoint: str, remote_dir: str) -> list[str]:
     remote_dir = remote_dir.rstrip("/")
     spec = f"{endpoint}:{remote_dir}/"
@@ -61,21 +73,62 @@ def globus_ls(endpoint: str, remote_dir: str) -> list[str]:
     )
     if proc.returncode != 0:
         raise SystemExit(f"globus ls failed for {spec}\n{proc.stderr or proc.stdout}")
-    names = []
+    names: list[str] = []
     for raw in proc.stdout.splitlines():
-        name = raw.strip().rstrip("/")
-        if name and name not in (".", ".."):
-            names.append(name)
+        base = _basename_from_ls_line(raw)
+        if base:
+            names.append(base)
     return names
+
+
+def calendar_zip_candidates(count: int) -> list[tuple[str, str]]:
+    """Latest `count` UTC calendar days as (YYYY-MM-DD, YYYY-MM-DD.zip)."""
+    today = datetime.now(timezone.utc).date()
+    out: list[tuple[str, str]] = []
+    for i in range(count):
+        day = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+        out.append((day, f"{day}.zip"))
+    return out
+
+
+def select_zip_archives(
+    src_ep: str,
+    zip_base: str,
+    count: int,
+    *,
+    discover: bool,
+) -> tuple[list[tuple[str, str]], str]:
+    """Return (selected archives, method label)."""
+    if discover:
+        print("  trying globus ls…")
+        remote_names = globus_ls(src_ep, zip_base)
+        dated = parse_zip_dates(remote_names)
+        if dated:
+            print(f"  globus ls: {len(dated)} dated zip(s)")
+            return dated[:count], "globus-ls"
+        sample = ", ".join(remote_names[:5]) if remote_names else "(empty)"
+        print(f"  globus ls: no YYYY-MM-DD.zip matches ({len(remote_names)} entries; sample: {sample})")
+
+    print("  using UTC calendar dates (today + prior days)…")
+    return calendar_zip_candidates(count), "calendar"
 
 
 def parse_zip_dates(names: list[str]) -> list[tuple[str, str]]:
     """Return [(YYYY-MM-DD, filename), ...] sorted newest first."""
     dated: list[tuple[str, str]] = []
+    seen: set[str] = set()
     for name in names:
-        match = ZIP_DATE_RE.match(name)
-        if match:
-            dated.append((match.group(1), name))
+        base = Path(name).name
+        match = ZIP_BASENAME_RE.match(base)
+        if not match:
+            inline = ZIP_IN_LINE_RE.search(name)
+            if inline:
+                base = inline.group(1)
+                match = ZIP_BASENAME_RE.match(base)
+        if not match or base in seen:
+            continue
+        seen.add(base)
+        dated.append((match.group(1), base))
     dated.sort(key=lambda x: x[0], reverse=True)
     return dated
 
@@ -161,6 +214,16 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--skip-transfer", action="store_true", help="Only process zips already in incoming/")
     parser.add_argument("--force", action="store_true", help="Re-process even if .done marker exists")
+    parser.add_argument(
+        "--calendar-only",
+        action="store_true",
+        help="Skip globus ls; use today + prior UTC days (YYYY-MM-DD.zip)",
+    )
+    parser.add_argument(
+        "--dates",
+        metavar="YYYY-MM-DD,...",
+        help="Explicit zip dates to sync (comma-separated), overrides discovery",
+    )
     args = parser.parse_args()
 
     load_globus_config()
@@ -205,13 +268,22 @@ def main() -> None:
 
     if not args.skip_transfer:
         require_globus()
-        print("Listing remote ZIP folder…")
-        remote_names = globus_ls(src_ep, zip_base)
-        dated = parse_zip_dates(remote_names)
-        if not dated:
-            raise SystemExit(f"No YYYY-MM-DD.zip files found under {zip_base}")
-        selected = dated[: args.zip_count]
-        print(f"  remote zips: {len(dated)} dated archive(s)")
+        print("Selecting zip archives…")
+        if args.dates:
+            selected = [
+                (d.strip(), f"{d.strip()}.zip")
+                for d in args.dates.split(",")
+                if d.strip()
+            ]
+            method = "explicit"
+        else:
+            selected, method = select_zip_archives(
+                src_ep,
+                zip_base,
+                args.zip_count,
+                discover=not args.calendar_only,
+            )
+        print(f"  method: {method}")
         for day, name in selected:
             print(f"  → {name} ({day})")
 
@@ -255,7 +327,7 @@ def main() -> None:
 
     # Process all zips in incoming/ (selected latest N by date if multiple present)
     local_zips = sorted(
-        [p for p in incoming.glob("*.zip") if ZIP_DATE_RE.match(p.name)],
+        [p for p in incoming.glob("*.zip") if ZIP_BASENAME_RE.match(p.name)],
         key=lambda p: p.name,
         reverse=True,
     )[: args.zip_count]
@@ -273,7 +345,7 @@ def main() -> None:
             print(f"  skip process (done): {zip_path.name}")
             continue
 
-        day = ZIP_DATE_RE.match(zip_path.name).group(1)  # type: ignore[union-attr]
+        day = ZIP_BASENAME_RE.match(zip_path.name).group(1)  # type: ignore[union-attr]
         extract_dir = extract_root / day
         if extract_dir.exists():
             shutil.rmtree(extract_dir)
