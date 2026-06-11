@@ -35,7 +35,7 @@ See `docs/README.md` and `data/README.md` for build output details.
 ## Deploy workflow (Mac bootstrap → HPC updates)
 
 **Phase 1 — Mac (one-time full site)**  
-Globus (or copy) ~30 days of geotiffs + demo dates → build → full publish:
+Globus HPC → Mac geotiffs (see [scripts/globus/README.md](scripts/globus/README.md)) → build → full publish:
 
 ```bash
 pip install -r requirements.txt
