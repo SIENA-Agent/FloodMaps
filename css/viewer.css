@@ -4,6 +4,7 @@
   --border: #d8dee9;
   --text: #1f2933;
   --muted: #52606d;
+  --mobile-break: 768px;
 }
 
 * {
@@ -23,21 +24,64 @@ body {
   height: 100%;
 }
 
-.control-panel {
+.ui-panel {
   position: absolute;
-  top: 12px;
-  left: 12px;
   z-index: 1000;
-  width: min(360px, calc(100vw - 24px));
-  padding: 14px 16px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--panel-bg);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
 
-.control-panel h1 {
-  margin: 0 0 4px;
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.panel-toggle {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--accent);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.panel-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ui-panel.is-collapsed .panel-toggle-icon {
+  transform: rotate(-90deg);
+}
+
+.panel-toggle-icon {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.control-panel {
+  top: 12px;
+  left: 12px;
+  width: min(360px, calc(100vw - 24px));
+  padding: 14px 16px;
+}
+
+.control-panel .panel-title {
   font-size: 1.05rem;
 }
 
@@ -137,17 +181,16 @@ body {
 }
 
 .map-tools {
-  position: absolute;
   right: 12px;
   bottom: 148px;
-  z-index: 1000;
   width: 200px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--panel-bg);
   font-size: 0.78rem;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
+}
+
+.map-tools .panel-title {
+  font-size: 0.82rem;
 }
 
 .tools-label {
@@ -195,21 +238,15 @@ body {
 }
 
 .legend {
-  position: absolute;
   right: 12px;
   bottom: 28px;
-  z-index: 1000;
   width: 200px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--panel-bg);
   font-size: 0.78rem;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
 }
 
-.legend h2 {
-  margin: 0 0 8px;
+.legend .panel-title {
   font-size: 0.82rem;
 }
 
@@ -239,4 +276,193 @@ body {
 
 .swatch.flood-water {
   background: rgb(219, 0, 0);
+}
+
+/* Mobile FAB + backdrop (hidden on desktop) */
+.mobile-fab {
+  display: none;
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 1050;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.fab-main {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(11, 92, 171, 0.35);
+  cursor: pointer;
+}
+
+.fab-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 140px;
+}
+
+.fab-menu-item {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-bg);
+  color: var(--text);
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+}
+
+.mobile-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1090;
+  border: none;
+  padding: 0;
+  background: rgba(15, 23, 42, 0.35);
+  cursor: pointer;
+}
+
+.mobile-backdrop.is-visible {
+  display: block;
+}
+
+/* Desktop: panels always expanded; hide mobile-only controls */
+@media (min-width: 769px) {
+  .panel-toggle,
+  .mobile-fab,
+  .mobile-backdrop {
+    display: none !important;
+  }
+
+  .ui-panel.is-collapsed .panel-body {
+    display: block !important;
+  }
+}
+
+/* Mobile layout */
+@media (max-width: 768px) {
+  body.mobile-ui .mobile-fab {
+    display: flex;
+  }
+
+  body.mobile-ui .panel-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  body.mobile-ui .leaflet-bottom.leaflet-right {
+    bottom: max(12px, env(safe-area-inset-bottom));
+    right: max(12px, env(safe-area-inset-right));
+  }
+
+  body.mobile-ui .leaflet-bottom.leaflet-left {
+    bottom: max(72px, calc(12px + env(safe-area-inset-bottom)));
+    left: max(12px, env(safe-area-inset-left));
+  }
+
+  /* Legend and tools hidden until opened */
+  body.mobile-ui #panel-legend:not(.is-mobile-open),
+  body.mobile-ui #panel-tools:not(.is-mobile-open) {
+    display: none;
+  }
+
+  body.mobile-ui #panel-legend.is-mobile-open,
+  body.mobile-ui #panel-tools.is-mobile-open {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: auto;
+    max-height: min(45vh, 320px);
+    overflow-y: auto;
+    border-radius: 14px 14px 0 0;
+    padding: 12px 16px max(16px, env(safe-area-inset-bottom));
+    z-index: 1100;
+    animation: sheet-up 0.2s ease;
+  }
+
+  body.mobile-ui #panel-controls {
+    top: max(8px, env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+    right: max(56px, calc(8px + env(safe-area-inset-right)));
+    width: auto;
+    max-width: none;
+    padding: 10px 12px;
+  }
+
+  body.mobile-ui #panel-controls.is-mobile-open {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    max-height: min(55vh, 420px);
+    overflow-y: auto;
+    border-radius: 14px 14px 0 0;
+    padding: 12px 16px max(16px, env(safe-area-inset-bottom));
+    z-index: 1100;
+    animation: sheet-up 0.2s ease;
+  }
+
+  body.mobile-ui #panel-controls.is-collapsed:not(.is-mobile-open) .demo-note,
+  body.mobile-ui #panel-controls.is-collapsed:not(.is-mobile-open) .field-opacity,
+  body.mobile-ui #panel-controls.is-collapsed:not(.is-mobile-open) .info-panel {
+    display: none;
+  }
+
+  body.mobile-ui #panel-controls.is-collapsed:not(.is-mobile-open) .panel-body {
+    margin-top: 6px;
+  }
+
+  body.mobile-ui #panel-controls.is-collapsed:not(.is-mobile-open) .field-date {
+    margin-bottom: 6px;
+  }
+
+  body.mobile-ui #panel-controls.is-collapsed:not(.is-mobile-open) .status-line {
+    margin-top: 0;
+    font-size: 0.72rem;
+  }
+
+  body.mobile-ui #panel-controls.is-collapsed:not(.is-mobile-open) .panel-title {
+    font-size: 0.9rem;
+  }
+
+  body.mobile-ui #panel-controls.is-collapsed:not(.is-mobile-open) .panel-header {
+    margin-bottom: 0;
+  }
+
+  body.mobile-ui .zoom-block {
+    display: none;
+  }
+
+  body.mobile-ui .legend-note {
+    display: none;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(12px);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }

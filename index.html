@@ -16,57 +16,116 @@
   <body>
     <div id="map"></div>
 
-    <aside class="control-panel">
-      <h1>SIENA Flood Maps</h1>
-      <p class="demo-note">
-        Interactive Sentinel-1 flood classification over <strong>OpenStreetMap</strong>.
-        Select a sensing date; click a granule for metadata.
-      </p>
-
-      <div class="field">
-        <label for="date-select">Sensing date</label>
-        <select id="date-select"></select>
+    <aside class="control-panel ui-panel" id="panel-controls" data-panel-id="controls">
+      <div class="panel-header">
+        <h1 class="panel-title">SIENA Flood Maps</h1>
+        <button
+          type="button"
+          class="panel-toggle"
+          aria-expanded="true"
+          aria-controls="panel-controls-body"
+          aria-label="Toggle controls panel"
+        >
+          <span class="panel-toggle-icon" aria-hidden="true">▾</span>
+        </button>
       </div>
+      <div id="panel-controls-body" class="panel-body">
+        <p class="demo-note">
+          Interactive Sentinel-1 flood classification over <strong>OpenStreetMap</strong>.
+          Select a sensing date; click a granule for metadata.
+        </p>
 
-      <div class="field">
-        <label for="opacity">Overlay opacity</label>
-        <input id="opacity" type="range" min="0.3" max="1" step="0.05" value="0.9" />
-      </div>
+        <div class="field field-date">
+          <label for="date-select">Sensing date</label>
+          <select id="date-select"></select>
+        </div>
 
-      <p id="status" class="status-line">Starting…</p>
+        <div class="field field-opacity">
+          <label for="opacity">Overlay opacity</label>
+          <input id="opacity" type="range" min="0.3" max="1" step="0.05" value="0.9" />
+        </div>
 
-      <div id="granule-info" class="info-panel">
-        <p class="info-hint">Click on a granule on the map for details.</p>
+        <p id="status" class="status-line">Starting…</p>
+
+        <div id="granule-info" class="info-panel">
+          <p class="info-hint">Click on a granule on the map for details.</p>
+        </div>
       </div>
     </aside>
 
-    <section class="legend" aria-label="Class legend">
-      <h2>Classes</h2>
-      <div class="legend-item">
-        <span class="swatch permanent-water"></span>
-        <span>Permanent water (class 1)</span>
+    <section class="legend ui-panel" id="panel-legend" data-panel-id="legend" aria-label="Class legend">
+      <div class="panel-header">
+        <h2 class="panel-title">Classes</h2>
+        <button
+          type="button"
+          class="panel-toggle"
+          aria-expanded="true"
+          aria-controls="panel-legend-body"
+          aria-label="Toggle legend"
+        >
+          <span class="panel-toggle-icon" aria-hidden="true">▾</span>
+        </button>
       </div>
-      <div class="legend-item">
-        <span class="swatch flood-water"></span>
-        <span>Flood water (class 3)</span>
+      <div id="panel-legend-body" class="panel-body">
+        <div class="legend-item">
+          <span class="swatch permanent-water"></span>
+          <span>Permanent water (class 1)</span>
+        </div>
+        <div class="legend-item">
+          <span class="swatch flood-water"></span>
+          <span>Flood water (class 3)</span>
+        </div>
+        <p class="legend-note">Other pixels are transparent so the map base shows through.</p>
       </div>
-      <p class="legend-note">Other pixels are transparent so the map base shows through.</p>
     </section>
 
-    <section class="map-tools" aria-label="Map scale and zoom">
-      <div class="scale-block">
-        <span class="tools-label">Map scale</span>
-        <div id="scale-bar" class="scale-bar" aria-hidden="true">
-          <div id="scale-bar-line" class="scale-bar-line"></div>
-          <span id="scale-bar-label" class="scale-bar-label">—</span>
+    <section class="map-tools ui-panel" id="panel-tools" data-panel-id="tools" aria-label="Map scale and zoom">
+      <div class="panel-header">
+        <h2 class="panel-title">Map tools</h2>
+        <button
+          type="button"
+          class="panel-toggle"
+          aria-expanded="true"
+          aria-controls="panel-tools-body"
+          aria-label="Toggle map tools"
+        >
+          <span class="panel-toggle-icon" aria-hidden="true">▾</span>
+        </button>
+      </div>
+      <div id="panel-tools-body" class="panel-body">
+        <div class="scale-block">
+          <span class="tools-label">Map scale</span>
+          <div id="scale-bar" class="scale-bar" aria-hidden="true">
+            <div id="scale-bar-line" class="scale-bar-line"></div>
+            <span id="scale-bar-label" class="scale-bar-label">—</span>
+          </div>
         </div>
+        <div class="zoom-block">
+          <label class="tools-label" for="zoom-slider">Zoom level <span id="zoom-value">4</span></label>
+          <input id="zoom-slider" type="range" min="3" max="12" step="1" value="4" />
+        </div>
+        <p id="zoom-hint" class="tools-hint">Blue outlines show coverage when zoomed out.</p>
       </div>
-      <div class="zoom-block">
-        <label class="tools-label" for="zoom-slider">Zoom level <span id="zoom-value">4</span></label>
-        <input id="zoom-slider" type="range" min="3" max="12" step="1" value="4" />
-      </div>
-      <p id="zoom-hint" class="tools-hint">Blue outlines show coverage when zoomed out.</p>
     </section>
+
+    <div class="mobile-fab" id="mobile-fab" hidden>
+      <div class="fab-menu" id="fab-menu" role="menu" aria-label="Map panels" hidden>
+        <button type="button" class="fab-menu-item" data-panel-id="controls" role="menuitem">Controls</button>
+        <button type="button" class="fab-menu-item" data-panel-id="legend" role="menuitem">Legend</button>
+        <button type="button" class="fab-menu-item" data-panel-id="tools" role="menuitem">Scale</button>
+      </div>
+      <button
+        type="button"
+        class="fab-main"
+        id="fab-main"
+        aria-expanded="false"
+        aria-controls="fab-menu"
+        aria-label="Open map tools menu"
+      >
+        Tools
+      </button>
+    </div>
+    <button type="button" class="mobile-backdrop" id="mobile-backdrop" hidden aria-label="Close panel"></button>
 
     <script>window.FLOOD_VIEWER_CONFIG = { mode: "tiles", dataRoot: "data/geotiffs/", tileMinZoom: 3, tileMaxZoom: 10 };</script>
     <script

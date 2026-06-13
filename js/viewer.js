@@ -66,6 +66,17 @@
   let syncInFlight = false;
   let syncQueued = false;
 
+  const MOBILE_MQ = window.matchMedia("(max-width: 768px)");
+  const UI_STORAGE_KEY = "floodmaps-mobile-ui";
+
+  function isMobileLayout() {
+    return MOBILE_MQ.matches;
+  }
+
+  function resetInfoHint() {
+    infoEl.innerHTML = '<p class="info-hint">Tap a granule on the map for details.</p>';
+  }
+
   function setStatus(message) {
     statusEl.textContent = message;
   }
@@ -107,6 +118,10 @@
   }
 
   function showInfoPanel(product) {
+    if (isMobileLayout()) {
+      resetInfoHint();
+      return;
+    }
     infoEl.innerHTML = `
       <p class="info-hint">Click anywhere on a granule on the map for details.</p>
       <div class="info-card">
@@ -496,7 +511,11 @@
     if (groupBounds.isValid()) {
       map.fitBounds(groupBounds, { padding: [30, 30], maxZoom: 8 });
     }
-    showInfoPanel(products[0]);
+    if (!isMobileLayout()) {
+      showInfoPanel(products[0]);
+    } else {
+      resetInfoHint();
+    }
     if (isTiles) {
       displayAllTileLayers(products);
     } else {
@@ -543,6 +562,157 @@
     });
   }
 
+  function loadMobileUiState() {
+    try {
+      const raw = sessionStorage.getItem(UI_STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (error) {
+      console.warn("Could not load mobile UI state", error);
+    }
+    return {
+      controlsCollapsed: true,
+      legendCollapsed: true,
+      toolsCollapsed: true,
+    };
+  }
+
+  function saveMobileUiState(panels) {
+    if (!isMobileLayout()) return;
+    sessionStorage.setItem(
+      UI_STORAGE_KEY,
+      JSON.stringify({
+        controlsCollapsed: panels.controls.classList.contains("is-collapsed"),
+        legendCollapsed: panels.legend.classList.contains("is-collapsed"),
+        toolsCollapsed: panels.tools.classList.contains("is-collapsed"),
+      })
+    );
+  }
+
+  function updatePanelToggleAria(panel) {
+    if (!panel) return;
+    const toggle = panel.querySelector(".panel-toggle");
+    if (!toggle) return;
+    const expanded =
+      panel.classList.contains("is-mobile-open") || !panel.classList.contains("is-collapsed");
+    toggle.setAttribute("aria-expanded", String(expanded));
+  }
+
+  function initMobileUi() {
+    const panels = {
+      controls: document.getElementById("panel-controls"),
+      legend: document.getElementById("panel-legend"),
+      tools: document.getElementById("panel-tools"),
+    };
+    const fab = document.getElementById("mobile-fab");
+    const fabMain = document.getElementById("fab-main");
+    const fabMenu = document.getElementById("fab-menu");
+    const backdrop = document.getElementById("mobile-backdrop");
+    if (!panels.controls || !panels.legend || !panels.tools || !fab) return;
+
+    let openPanelId = null;
+
+    function closeMobileSheet() {
+      openPanelId = null;
+      Object.values(panels).forEach((panel) => panel.classList.remove("is-mobile-open"));
+      if (fabMenu) fabMenu.hidden = true;
+      if (fabMain) fabMain.setAttribute("aria-expanded", "false");
+      if (backdrop) {
+        backdrop.hidden = true;
+        backdrop.classList.remove("is-visible");
+      }
+      Object.values(panels).forEach(updatePanelToggleAria);
+    }
+
+    function openMobileSheet(panelId) {
+      const panel = panels[panelId];
+      if (!panel || !isMobileLayout()) return;
+      closeMobileSheet();
+      openPanelId = panelId;
+      panel.classList.remove("is-collapsed");
+      panel.classList.add("is-mobile-open");
+      updatePanelToggleAria(panel);
+      if (backdrop) {
+        backdrop.hidden = false;
+        backdrop.classList.add("is-visible");
+      }
+      saveMobileUiState(panels);
+    }
+
+    function applyMobileMode() {
+      const mobile = isMobileLayout();
+      document.body.classList.toggle("mobile-ui", mobile);
+      fab.hidden = !mobile;
+
+      if (!mobile) {
+        closeMobileSheet();
+        Object.values(panels).forEach((panel) => {
+          panel.classList.remove("is-collapsed", "is-mobile-open");
+          updatePanelToggleAria(panel);
+        });
+        return;
+      }
+
+      const state = loadMobileUiState();
+      panels.controls.classList.toggle("is-collapsed", Boolean(state.controlsCollapsed));
+      panels.legend.classList.toggle("is-collapsed", Boolean(state.legendCollapsed));
+      panels.tools.classList.toggle("is-collapsed", Boolean(state.toolsCollapsed));
+      Object.values(panels).forEach(updatePanelToggleAria);
+    }
+
+    function togglePanel(panelId) {
+      if (!isMobileLayout()) return;
+      const panel = panels[panelId];
+      if (!panel) return;
+
+      if (panel.classList.contains("is-mobile-open")) {
+        panel.classList.add("is-collapsed");
+        closeMobileSheet();
+        saveMobileUiState(panels);
+        return;
+      }
+
+      if ((panelId === "legend" || panelId === "tools") && panel.classList.contains("is-collapsed")) {
+        openMobileSheet(panelId);
+        return;
+      }
+
+      panel.classList.toggle("is-collapsed");
+      updatePanelToggleAria(panel);
+      saveMobileUiState(panels);
+    }
+
+    Object.entries(panels).forEach(([panelId, panel]) => {
+      panel.querySelector(".panel-toggle")?.addEventListener("click", () => togglePanel(panelId));
+    });
+
+    fabMain?.addEventListener("click", () => {
+      if (!fabMenu) return;
+      const willOpen = fabMenu.hidden;
+      fabMenu.hidden = !willOpen;
+      fabMain.setAttribute("aria-expanded", String(willOpen));
+    });
+
+    fabMenu?.querySelectorAll(".fab-menu-item").forEach((button) => {
+      button.addEventListener("click", () => {
+        const panelId = button.getAttribute("data-panel-id");
+        if (panelId) openMobileSheet(panelId);
+        if (fabMenu) fabMenu.hidden = true;
+        if (fabMain) fabMain.setAttribute("aria-expanded", "false");
+      });
+    });
+
+    backdrop?.addEventListener("click", () => {
+      if (openPanelId) {
+        panels[openPanelId].classList.add("is-collapsed");
+        saveMobileUiState(panels);
+      }
+      closeMobileSheet();
+    });
+
+    MOBILE_MQ.addEventListener("change", applyMobileMode);
+    applyMobileMode();
+  }
+
   function boot() {
     if (typeof L === "undefined") {
       setStatus("Leaflet failed to load. Check your network connection.");
@@ -572,6 +742,8 @@
       .catch((error) => {
         setStatus(`Catalog failed to load: ${error.message}`);
       });
+
+    initMobileUi();
   }
 
   dateSelect.addEventListener("change", () => displayDate(dateSelect.value));
