@@ -1,7 +1,7 @@
 {
   "version": 1,
   "description": "SIENA Sentinel-1 RGB flood classification GeoTIFF granules",
-  "product_count": 2558,
+  "product_count": 2560,
   "available_dates": [
     "20251214",
     "20251217",
@@ -43523,6 +43523,40 @@
       "center": [
         -132.270525994771,
         52.48572825689132
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260617T023615_20260617T023640_003270_005B81_AA24_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260617T023615_20260617T023640_003270_005B81_AA24_sigma0_vv_30m.tif",
+      "sensing_start": "2026-06-17T02:36:15Z",
+      "sensing_end": "2026-06-17T02:36:40Z",
+      "sensing_date": "20260617",
+      "bounds": [
+        -134.89004532349654,
+        53.08558347680922,
+        -130.62033537870803,
+        55.128259662630576
+      ],
+      "center": [
+        -132.75519035110227,
+        54.1069215697199
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260617T023640_20260617T023711_003270_005B81_A23D_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260617T023640_20260617T023711_003270_005B81_A23D_sigma0_vv_30m.tif",
+      "sensing_start": "2026-06-17T02:36:40Z",
+      "sensing_end": "2026-06-17T02:37:11Z",
+      "sensing_date": "20260617",
+      "bounds": [
+        -135.61161604507856,
+        54.592485203568934,
+        -131.01106722975538,
+        56.94784230579168
+      ],
+      "center": [
+        -133.31134163741697,
+        55.77016375468031
       ]
     }
   ]
