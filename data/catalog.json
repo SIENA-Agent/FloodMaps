@@ -1,7 +1,7 @@
 {
   "version": 1,
   "description": "SIENA Sentinel-1 RGB flood classification GeoTIFF granules",
-  "product_count": 2536,
+  "product_count": 2539,
   "available_dates": [
     "20251214",
     "20251217",
@@ -21627,6 +21627,57 @@
       "center": [
         -118.18037659323463,
         32.26592782907513
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1A_IW_GRDH_1SDV_20260621T170331_20260621T170400_065070_08339F_22B2_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1A_IW_GRDH_1SDV_20260621T170331_20260621T170400_065070_08339F_22B2_sigma0_vv_30m.tif",
+      "sensing_start": "2026-06-21T17:03:31Z",
+      "sensing_end": "2026-06-21T17:04:00Z",
+      "sensing_date": "20260621",
+      "bounds": [
+        -163.80868158048958,
+        55.87842110810451,
+        -158.87358529465845,
+        58.01405855546695
+      ],
+      "center": [
+        -161.341133437574,
+        56.94623983178573
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1A_IW_GRDH_1SDV_20260621T170400_20260621T170425_065070_08339F_A3A4_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1A_IW_GRDH_1SDV_20260621T170400_20260621T170425_065070_08339F_A3A4_sigma0_vv_30m.tif",
+      "sensing_start": "2026-06-21T17:04:00Z",
+      "sensing_end": "2026-06-21T17:04:25Z",
+      "sensing_date": "20260621",
+      "bounds": [
+        -164.18416678888985,
+        54.38843662307855,
+        -159.53245482614747,
+        56.280553357991366
+      ],
+      "center": [
+        -161.85831080751865,
+        55.33449499053496
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1A_IW_GRDH_1SDV_20260621T170425_20260621T170440_065070_08339F_5743_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1A_IW_GRDH_1SDV_20260621T170425_20260621T170440_065070_08339F_5743_sigma0_vv_30m.tif",
+      "sensing_start": "2026-06-21T17:04:25Z",
+      "sensing_end": "2026-06-21T17:04:40Z",
+      "sensing_date": "20260621",
+      "bounds": [
+        -164.17672915589483,
+        53.43791112804942,
+        -160.1028337450348,
+        54.883114268894744
+      ],
+      "center": [
+        -162.1397814504648,
+        54.16051269847208
       ]
     },
     {
