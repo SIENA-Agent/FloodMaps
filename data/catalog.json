@@ -1,7 +1,7 @@
 {
   "version": 1,
   "description": "SIENA Sentinel-1 RGB flood classification GeoTIFF granules",
-  "product_count": 2531,
+  "product_count": 2534,
   "available_dates": [
     "20251214",
     "20251217",
@@ -30144,6 +30144,57 @@
       "center": [
         -160.24744826007242,
         66.108694532525
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1C_IW_GRDH_1SDV_20260630T041021_20260630T041046_008330_0107B9_4165_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1C_IW_GRDH_1SDV_20260630T041021_20260630T041046_008330_0107B9_4165_sigma0_vv_30m.tif",
+      "sensing_start": "2026-06-30T04:10:21Z",
+      "sensing_end": "2026-06-30T04:10:46Z",
+      "sensing_date": "20260630",
+      "bounds": [
+        -164.68689074226253,
+        66.59865125020245,
+        -157.526478497735,
+        68.56581447603554
+      ],
+      "center": [
+        -161.10668461999876,
+        67.582232863119
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1C_IW_GRDH_1SDV_20260630T041046_20260630T041111_008330_0107B9_45EE_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1C_IW_GRDH_1SDV_20260630T041046_20260630T041111_008330_0107B9_45EE_sigma0_vv_30m.tif",
+      "sensing_start": "2026-06-30T04:10:46Z",
+      "sensing_end": "2026-06-30T04:11:11Z",
+      "sensing_date": "20260630",
+      "bounds": [
+        -165.96097700676074,
+        68.06494000083856,
+        -158.17654347915388,
+        70.04204029893903
+      ],
+      "center": [
+        -162.0687602429573,
+        69.0534901498888
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1C_IW_GRDH_1SDV_20260630T041111_20260630T041126_008330_0107B9_249A_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1C_IW_GRDH_1SDV_20260630T041111_20260630T041126_008330_0107B9_249A_sigma0_vv_30m.tif",
+      "sensing_start": "2026-06-30T04:11:11Z",
+      "sensing_end": "2026-06-30T04:11:26Z",
+      "sensing_date": "20260630",
+      "bounds": [
+        -166.2762990784282,
+        69.43673872576024,
+        -158.92771281412877,
+        71.06668539486816
+      ],
+      "center": [
+        -162.6020059462785,
+        70.25171206031419
       ]
     },
     {
