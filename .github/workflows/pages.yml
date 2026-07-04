@@ -23,6 +23,11 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Checkout site content from gh-pages (not main).
+      # NOTE: actions/deploy-pages uses GITHUB_SHA from the workflow ref (main).
+      # publish.sh bumps .github/pages-deploy-stamp on main before each dispatch
+      # so each deploy gets a unique pages_build_version; otherwise GitHub Pages
+      # can report success while leaving the live site on an older artifact.
       - uses: actions/checkout@v5
         with:
           ref: gh-pages
@@ -35,6 +40,14 @@ jobs:
           count=$(find tiles -name '*.png' | wc -l)
           echo "PNG tiles: $count"
           test "$count" -gt 0
+          echo "gh-pages commit: $(git rev-parse HEAD)"
+          python3 - <<'PY'
+          import json
+          c = json.load(open("data/catalog.json"))
+          dates = c.get("available_dates", [])
+          print(f"catalog products: {c['product_count']}")
+          print(f"catalog latest dates: {dates[-5:]}")
+          PY
 
       - uses: actions/upload-pages-artifact@v4
         with:

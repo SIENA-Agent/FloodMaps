@@ -23,6 +23,35 @@ trap cleanup_pidfile EXIT
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+ensure_publish_env() {
+  if [[ -n "${PYTHON:-}" ]] && command -v "$PYTHON" >/dev/null 2>&1; then
+    return
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    PYTHON=python3
+    return
+  fi
+  if command -v python >/dev/null 2>&1; then
+    PYTHON=python
+    return
+  fi
+  local mac_env="${ROOT}/scripts/mac/load_mac_env.sh"
+  if [[ -f "$mac_env" ]]; then
+    # shellcheck disable=SC1091
+    source "$mac_env"
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    PYTHON=python3
+  elif command -v python >/dev/null 2>&1; then
+    PYTHON=python
+  else
+    echo "ERROR: python3 not found — run via scripts/mac/orchestrate_build_publish.sh or set PATH." >&2
+    exit 1
+  fi
+}
+
+ensure_publish_env
+
 PUBLISH_MODE="${PUBLISH_MODE:-auto}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -64,7 +93,7 @@ fi
 
 REMOTE="$(git remote get-url origin)"
 STAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-GRANULES="$(python -c "import json; print(json.load(open('${CATALOG}'))['product_count'])")"
+GRANULES="$("$PYTHON" -c "import json; print(json.load(open('${CATALOG}'))['product_count'])")"
 
 REPO_SLUG="$(
   printf '%s' "$REMOTE" | sed -E 's#.*github\.com[:/]([^/]+/[^/.]+)(\.git)?$#\1#'
@@ -114,7 +143,7 @@ STAGE_SUMMARY="${STATE_DIR}/stage_summary.json"
 
 log_phase "stage (catalog diff) …"
 t0="$(date +%s)"
-python "${ROOT}/scripts/publish_stage.py" \
+"$PYTHON" "${ROOT}/scripts/publish_stage.py" \
   --catalog "$CATALOG" \
   --state-dir "$STATE_DIR" \
   --work-tree "${GIT_WORK_TREE}" \
@@ -123,9 +152,9 @@ python "${ROOT}/scripts/publish_stage.py" \
   --summary-out "$STAGE_SUMMARY"
 log_phase "stage done ($(( $(date +%s) - t0 ))s)"
 
-STAGED_MODE="$(python -c "import json; print(json.load(open('${STAGE_SUMMARY}'))['mode'])")"
-ADDED_COUNT="$(python -c "import json; print(len(json.load(open('${STAGE_SUMMARY}'))['added']))")"
-REMOVED_COUNT="$(python -c "import json; print(len(json.load(open('${STAGE_SUMMARY}'))['removed']))")"
+STAGED_MODE="$("$PYTHON" -c "import json; print(json.load(open('${STAGE_SUMMARY}'))['mode'])")"
+ADDED_COUNT="$("$PYTHON" -c "import json; print(len(json.load(open('${STAGE_SUMMARY}'))['added']))")"
+REMOVED_COUNT="$("$PYTHON" -c "import json; print(len(json.load(open('${STAGE_SUMMARY}'))['removed']))")"
 
 COMMIT_MSG="Deploy ${STAMP} — ${GRANULES} granules (${PNG_COUNT} PNGs)"
 if [[ "$STAGED_MODE" == "incremental" ]]; then
@@ -161,26 +190,77 @@ cp "$CATALOG" "${STATE_DIR}/last_catalog.json"
 echo ""
 echo "Pushed gh-pages (${DEPLOY_SHA}, mode=${STAGED_MODE})."
 
-trigger_deploy_workflow() {
-  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-    echo "Triggering Deploy GitHub Pages workflow (gh)…"
-    gh workflow run pages.yml --repo "$REPO_SLUG" --ref main
-    return 0
-  fi
+# deploy-pages uses GITHUB_SHA from the workflow ref (main). If main never moves,
+# GitHub Pages can report success while keeping the previous live artifact.
+# Bump a stamp on main so each deploy gets a unique pages_build_version.
+bump_pages_deploy_stamp() {
+  local stamp_file="${ROOT}/.github/pages-deploy-stamp"
+  local full_sha
+  full_sha="$(gitw rev-parse HEAD)"
+  mkdir -p "${ROOT}/.github"
+  printf '%s %s\n' "$full_sha" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$stamp_file"
 
+  # publish.sh sets GIT_DIR to the gh-pages worktree — use main repo explicitly.
+  if ! (
+    unset GIT_DIR GIT_WORK_TREE
+    cd "$ROOT"
+    git add .github/pages-deploy-stamp .github/workflows/pages.yml 2>/dev/null || git add .github/pages-deploy-stamp
+    if git diff --cached --quiet; then
+      return 0
+    fi
+    git -c user.name="${GIT_AUTHOR_NAME:-SIENA Flood Maps}" \
+      -c user.email="${GIT_AUTHOR_EMAIL:-siena-floodmaps@users.noreply.github.com}" \
+      commit -m "chore: pages deploy stamp ${DEPLOY_SHA}"
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+      git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO_SLUG}.git" HEAD:main
+    else
+      git push origin HEAD:main
+    fi
+  ); then
+    echo "WARNING: could not bump pages-deploy-stamp on main (live site may stay stale)." >&2
+    return 1
+  fi
+  echo "Bumped pages-deploy-stamp on main (unique deploy version)."
+  return 0
+}
+
+trigger_deploy_workflow() {
+  # Non-interactive (cron): GITHUB_TOKEN from ~/.config/floodmaps/credentials.env
   if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    if command -v gh >/dev/null 2>&1; then
+      echo "Triggering Deploy GitHub Pages workflow (GITHUB_TOKEN + gh)…"
+      if GH_TOKEN="$GITHUB_TOKEN" gh workflow run pages.yml --repo "$REPO_SLUG" --ref main; then
+        return 0
+      fi
+      echo "gh workflow trigger failed — trying GitHub API…" >&2
+    fi
     echo "Triggering Deploy GitHub Pages workflow (GITHUB_TOKEN)…"
-    curl -sf -X POST \
+    if curl -sf -X POST \
       -H "Authorization: Bearer ${GITHUB_TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
       "https://api.github.com/repos/${REPO_SLUG}/actions/workflows/pages.yml/dispatches" \
-      -d '{"ref":"main"}' >/dev/null
-    return 0
+      -d '{"ref":"main"}' >/dev/null; then
+      return 0
+    fi
+    echo "ERROR: GITHUB_TOKEN rejected (check PAT scopes: Contents + Actions on ${REPO_SLUG})." >&2
+    return 1
+  fi
+
+  # Interactive Mac: gh auth login (Keychain — not available to cron)
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    echo "Triggering Deploy GitHub Pages workflow (gh)…"
+    if gh workflow run pages.yml --repo "$REPO_SLUG" --ref main; then
+      return 0
+    fi
+    echo "ERROR: gh workflow trigger failed." >&2
+    return 1
   fi
 
   return 1
 }
+
+bump_pages_deploy_stamp || true
 
 if trigger_deploy_workflow; then
   echo "Deploy workflow started — usually live in 1–2 min."
