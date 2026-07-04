@@ -190,6 +190,12 @@ cp "$CATALOG" "${STATE_DIR}/last_catalog.json"
 echo ""
 echo "Pushed gh-pages (${DEPLOY_SHA}, mode=${STAGED_MODE})."
 
+# No catalog/tile changes — skip stamp + Actions (avoids flaky no-op Pages deploys).
+SITE_UNCHANGED=0
+if [[ "$STAGED_MODE" == "incremental" && "$ADDED_COUNT" == "0" && "$REMOVED_COUNT" == "0" ]]; then
+  SITE_UNCHANGED=1
+fi
+
 # deploy-pages uses GITHUB_SHA from the workflow ref (main). If main never moves,
 # GitHub Pages can report success while keeping the previous live artifact.
 # Bump a stamp on main so each deploy gets a unique pages_build_version.
@@ -211,8 +217,13 @@ bump_pages_deploy_stamp() {
     git -c user.name="${GIT_AUTHOR_NAME:-SIENA Flood Maps}" \
       -c user.email="${GIT_AUTHOR_EMAIL:-siena-floodmaps@users.noreply.github.com}" \
       commit -m "chore: pages deploy stamp ${DEPLOY_SHA}"
-    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-      git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO_SLUG}.git" HEAD:main
+    # Prefer SSH (matches origin); HTTPS token can print harmless "failed to store: -61".
+    export GIT_TERMINAL_PROMPT=0
+    if git remote get-url origin 2>/dev/null | grep -qE '^git@|^ssh://'; then
+      git push origin HEAD:main
+    elif [[ -n "${GITHUB_TOKEN:-}" ]]; then
+      git -c credential.helper= push \
+        "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO_SLUG}.git" HEAD:main
     else
       git push origin HEAD:main
     fi
@@ -260,16 +271,20 @@ trigger_deploy_workflow() {
   return 1
 }
 
-bump_pages_deploy_stamp || true
-
-if trigger_deploy_workflow; then
-  echo "Deploy workflow started — usually live in 1–2 min."
+if [[ "$SITE_UNCHANGED" -eq 1 ]]; then
+  echo "No granule changes — skipping Pages deploy (live site already current)."
 else
-  echo "WARNING: gh-pages pushed but deploy workflow was NOT started." >&2
-  echo "  Mac:  gh auth login" >&2
-  echo "  HPC:  ~/.config/floodmaps/credentials.env" >&2
-  echo "  Or:   export GITHUB_TOKEN=<PAT>" >&2
-  echo "  Or:   Actions → Deploy GitHub Pages → Run workflow" >&2
+  bump_pages_deploy_stamp || true
+
+  if trigger_deploy_workflow; then
+    echo "Deploy workflow started — usually live in 1–2 min."
+  else
+    echo "WARNING: gh-pages pushed but deploy workflow was NOT started." >&2
+    echo "  Mac:  gh auth login" >&2
+    echo "  HPC:  ~/.config/floodmaps/credentials.env" >&2
+    echo "  Or:   export GITHUB_TOKEN=<PAT>" >&2
+    echo "  Or:   Actions → Deploy GitHub Pages → Run workflow" >&2
+  fi
 fi
 
 echo "  Actions: https://github.com/${REPO_SLUG}/actions"

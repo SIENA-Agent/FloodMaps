@@ -14,14 +14,14 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.final.outputs.page_url }}
     steps:
       # Checkout site content from gh-pages (not main).
       # NOTE: actions/deploy-pages uses GITHUB_SHA from the workflow ref (main).
@@ -53,5 +53,31 @@ jobs:
         with:
           path: .
 
-      - id: deployment
+      # GitHub Pages sometimes fails transiently while syncing (~300MB sites).
+      - id: deploy1
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Wait before retry
+        if: steps.deploy1.outcome == 'failure'
+        run: |
+          echo "First deploy failed — waiting 30s and retrying…"
+          sleep 30
+
+      - id: deploy2
+        if: steps.deploy1.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+
+      - id: final
+        if: always()
+        run: |
+          if [ "${{ steps.deploy1.outcome }}" = "success" ]; then
+            echo "page_url=${{ steps.deploy1.outputs.page_url }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "${{ steps.deploy2.outcome }}" = "success" ]; then
+            echo "page_url=${{ steps.deploy2.outputs.page_url }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Deploy failed after retry"
+          exit 1
