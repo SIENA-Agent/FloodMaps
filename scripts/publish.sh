@@ -235,6 +235,57 @@ bump_pages_deploy_stamp() {
   return 0
 }
 
+gh_auth_env() {
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    GH_TOKEN="$GITHUB_TOKEN"
+    export GH_TOKEN
+  fi
+}
+
+latest_pages_run_id() {
+  gh_auth_env
+  gh run list --workflow=pages.yml --repo "$REPO_SLUG" --limit 1 \
+    --json databaseId -q '.[0].databaseId' 2>/dev/null || true
+}
+
+wait_for_pages_deploy() {
+  # Poll the workflow triggered by publish.sh; on failure bump stamp + re-dispatch.
+  if ! command -v gh >/dev/null 2>&1; then
+    return 0
+  fi
+  gh_auth_env
+  if ! gh auth status >/dev/null 2>&1 && [[ -z "${GITHUB_TOKEN:-}" ]]; then
+    return 0
+  fi
+
+  local rounds="${PAGES_DEPLOY_RETRY_ROUNDS:-2}"
+  local wait_sec="${PAGES_DEPLOY_WAIT_SEC:-540}"
+  local round run_id
+
+  for ((round = 1; round <= rounds + 1; round++)); do
+    sleep 12
+    run_id="$(latest_pages_run_id)"
+    if [[ -z "$run_id" || "$run_id" == "null" ]]; then
+      echo "WARNING: could not find Pages workflow run to watch." >&2
+      return 0
+    fi
+    echo "Watching Pages deploy run ${run_id} (round ${round}/$((rounds + 1)), timeout ${wait_sec}s)…"
+    if timeout "$wait_sec" gh run watch "$run_id" --repo "$REPO_SLUG" --exit-status; then
+      echo "Pages deploy succeeded."
+      return 0
+    fi
+    if (( round > rounds )); then
+      echo "WARNING: Pages deploy failed after $((rounds + 1)) workflow attempt(s)." >&2
+      echo "  gh-pages is updated; re-run: gh workflow run pages.yml --repo ${REPO_SLUG}" >&2
+      return 1
+    fi
+    echo "Pages deploy failed — bumping stamp and re-dispatching (round $((round + 1)))…"
+    bump_pages_deploy_stamp || true
+    trigger_deploy_workflow || return 1
+  done
+  return 1
+}
+
 trigger_deploy_workflow() {
   # Non-interactive (cron): GITHUB_TOKEN from ~/.config/floodmaps/credentials.env
   if [[ -n "${GITHUB_TOKEN:-}" ]]; then
@@ -277,7 +328,8 @@ else
   bump_pages_deploy_stamp || true
 
   if trigger_deploy_workflow; then
-    echo "Deploy workflow started — usually live in 1–2 min."
+    echo "Deploy workflow started — usually live in 3–5 min for ~300MB sites."
+    wait_for_pages_deploy || true
   else
     echo "WARNING: gh-pages pushed but deploy workflow was NOT started." >&2
     echo "  Mac:  gh auth login" >&2

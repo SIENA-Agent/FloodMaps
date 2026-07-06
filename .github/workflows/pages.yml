@@ -12,9 +12,11 @@ permissions:
   pages: write
   id-token: write
 
+# Do not cancel an in-progress Pages sync (~300MB) — cancellation often surfaces as
+# "Deployment failed, try again later" during syncing_files.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -49,23 +51,39 @@ jobs:
           print(f"catalog latest dates: {dates[-5:]}")
           PY
 
+      - name: Log artifact size
+        run: |
+          du -sh .
+          echo "PNG tiles: $(find tiles -name '*.png' | wc -l)"
+
       - uses: actions/upload-pages-artifact@v4
         with:
           path: .
 
-      # GitHub Pages sometimes fails transiently while syncing (~300MB sites).
+      # GitHub Pages often fails transiently while syncing large sites (~300MB).
       - id: deploy1
         uses: actions/deploy-pages@v4
         continue-on-error: true
 
-      - name: Wait before retry
+      - name: Wait before retry 2
         if: steps.deploy1.outcome == 'failure'
         run: |
-          echo "First deploy failed — waiting 30s and retrying…"
-          sleep 30
+          echo "Deploy attempt 1 failed during Pages sync — waiting 90s…"
+          sleep 90
 
       - id: deploy2
         if: steps.deploy1.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Wait before retry 3
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        run: |
+          echo "Deploy attempt 2 failed — waiting 180s…"
+          sleep 180
+
+      - id: deploy3
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
         uses: actions/deploy-pages@v4
 
       - id: final
@@ -73,11 +91,18 @@ jobs:
         run: |
           if [ "${{ steps.deploy1.outcome }}" = "success" ]; then
             echo "page_url=${{ steps.deploy1.outputs.page_url }}" >> "$GITHUB_OUTPUT"
+            echo "Succeeded on deploy1"
             exit 0
           fi
           if [ "${{ steps.deploy2.outcome }}" = "success" ]; then
             echo "page_url=${{ steps.deploy2.outputs.page_url }}" >> "$GITHUB_OUTPUT"
+            echo "Succeeded on deploy2"
             exit 0
           fi
-          echo "Deploy failed after retry"
+          if [ "${{ steps.deploy3.outcome }}" = "success" ]; then
+            echo "page_url=${{ steps.deploy3.outputs.page_url }}" >> "$GITHUB_OUTPUT"
+            echo "Succeeded on deploy3"
+            exit 0
+          fi
+          echo "Deploy failed after 3 attempts (Pages sync error — re-run workflow or wait for publish.sh auto-retry)"
           exit 1
