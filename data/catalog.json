@@ -1,7 +1,7 @@
 {
   "version": 1,
   "description": "SIENA Sentinel-1 RGB flood classification GeoTIFF granules",
-  "product_count": 2299,
+  "product_count": 2305,
   "available_dates": [
     "20251214",
     "20251217",
@@ -24384,6 +24384,23 @@
       ]
     },
     {
+      "id": "SIENA_2classes_RGB_S1C_IW_GRDH_1SDV_20260709T015723_20260709T015730_008460_010BEC_6565_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1C_IW_GRDH_1SDV_20260709T015723_20260709T015730_008460_010BEC_6565_sigma0_vv_30m.tif",
+      "sensing_start": "2026-07-09T01:57:23Z",
+      "sensing_end": "2026-07-09T01:57:30Z",
+      "sensing_date": "20260709",
+      "bounds": [
+        -120.67780581136677,
+        32.394771433153586,
+        -117.88892627606914,
+        33.26018957544311
+      ],
+      "center": [
+        -119.28336604371796,
+        32.82748050429835
+      ]
+    },
+    {
       "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDH_20260609T103923_20260609T103952_003158_0057DB_E6F5_sigma0_hh_30m",
       "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDH_20260609T103923_20260609T103952_003158_0057DB_E6F5_sigma0_hh_30m.tif",
       "sensing_start": "2026-06-09T10:39:23Z",
@@ -38987,6 +39004,40 @@
       ]
     },
     {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260708T233132_20260708T233157_003589_006620_37AA_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260708T233132_20260708T233157_003589_006620_37AA_sigma0_vv_30m.tif",
+      "sensing_start": "2026-07-08T23:31:32Z",
+      "sensing_end": "2026-07-08T23:31:57Z",
+      "sensing_date": "20260708",
+      "bounds": [
+        -85.69234685040146,
+        39.70026344648255,
+        -82.33541419956838,
+        41.76878364943344
+      ],
+      "center": [
+        -84.01388052498493,
+        40.73452354795799
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260708T233157_20260708T233215_003589_006620_3669_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260708T233157_20260708T233215_003589_006620_3669_sigma0_vv_30m.tif",
+      "sensing_start": "2026-07-08T23:31:57Z",
+      "sensing_end": "2026-07-08T23:32:15Z",
+      "sensing_date": "20260708",
+      "bounds": [
+        -85.98793338206828,
+        41.20886607847761,
+        -82.65512269516849,
+        42.88203668162233
+      ],
+      "center": [
+        -84.32152803861838,
+        42.04545138004997
+      ]
+    },
+    {
       "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260709T025324_20260709T025353_003591_00662A_AE9D_sigma0_vv_30m",
       "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260709T025324_20260709T025353_003591_00662A_AE9D_sigma0_vv_30m.tif",
       "sensing_start": "2026-07-09T02:53:24Z",
@@ -39120,6 +39171,57 @@
       "center": [
         -142.26939168374315,
         67.11465866273197
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260709T025648_20260709T025713_003591_00662A_F920_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260709T025648_20260709T025713_003591_00662A_F920_sigma0_vv_30m.tif",
+      "sensing_start": "2026-07-09T02:56:48Z",
+      "sensing_end": "2026-07-09T02:57:13Z",
+      "sensing_date": "20260709",
+      "bounds": [
+        -146.9462651051056,
+        67.59857404357314,
+        -139.44196008650326,
+        69.57507606376811
+      ],
+      "center": [
+        -143.19411259580443,
+        68.58682505367062
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260709T025713_20260709T025738_003591_00662A_5C05_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260709T025713_20260709T025738_003591_00662A_5C05_sigma0_vv_30m.tif",
+      "sensing_start": "2026-07-09T02:57:13Z",
+      "sensing_end": "2026-07-09T02:57:38Z",
+      "sensing_date": "20260709",
+      "bounds": [
+        -148.36467117352757,
+        69.06163470300065,
+        -140.14306407714406,
+        71.04937108268872
+      ],
+      "center": [
+        -144.25386762533583,
+        70.05550289284469
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260709T025738_20260709T025751_003591_00662A_EB6B_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260709T025738_20260709T025751_003591_00662A_EB6B_sigma0_vv_30m.tif",
+      "sensing_start": "2026-07-09T02:57:38Z",
+      "sensing_end": "2026-07-09T02:57:51Z",
+      "sensing_date": "20260709",
+      "bounds": [
+        -148.53305720505927,
+        70.43132184340006,
+        -140.95210212402696,
+        71.89497189225791
+      ],
+      "center": [
+        -144.74257966454311,
+        71.16314686782898
       ]
     }
   ]
