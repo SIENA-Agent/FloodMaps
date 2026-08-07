@@ -12,11 +12,11 @@ permissions:
   pages: write
   id-token: write
 
-# Do not cancel an in-progress Pages sync (~300MB) — cancellation often surfaces as
-# "Deployment failed, try again later" during syncing_files.
+# Cancel queued/stale deploys. Leaving cancel-in-progress=false let a single
+# "waiting" environment job block the queue for hours and make cron time out.
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:

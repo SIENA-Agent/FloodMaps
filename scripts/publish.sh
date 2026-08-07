@@ -112,8 +112,15 @@ log_phase() {
   echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*"
 }
 
+# Large incremental publishes: disable rename detection on all git ops in gh-pages.
+GIT_CFG=(
+  -c diff.renames=false
+  -c diff.renameLimit=0
+  -c status.renames=false
+)
+
 gitw() {
-  git "$@"
+  git "${GIT_CFG[@]}" "$@"
 }
 
 git_push_gh_pages() {
@@ -161,20 +168,21 @@ if [[ "$STAGED_MODE" == "incremental" ]]; then
   COMMIT_MSG="Deploy ${STAMP} — +${ADDED_COUNT} -${REMOVED_COUNT} granules (${GRANULES} total)"
 fi
 
+# Large incremental publishes: skip rename detection (saves hours on ~10k+ file diffs).
+GIT_COMMIT_CFG=(
+  "${GIT_CFG[@]}"
+  -c user.name="${GIT_AUTHOR_NAME:-SIENA Flood Maps}"
+  -c user.email="${GIT_AUTHOR_EMAIL:-siena-floodmaps@users.noreply.github.com}"
+)
+
 log_phase "git commit …"
 t0="$(date +%s)"
 if gitw diff --cached --quiet && ! gitw rev-parse --verify HEAD >/dev/null 2>&1; then
-  gitw -c user.name="${GIT_AUTHOR_NAME:-SIENA Flood Maps}" \
-      -c user.email="${GIT_AUTHOR_EMAIL:-siena-floodmaps@users.noreply.github.com}" \
-      commit -m "$COMMIT_MSG"
+  gitw "${GIT_COMMIT_CFG[@]}" commit -m "$COMMIT_MSG"
 elif gitw diff --cached --quiet; then
-  gitw -c user.name="${GIT_AUTHOR_NAME:-SIENA Flood Maps}" \
-      -c user.email="${GIT_AUTHOR_EMAIL:-siena-floodmaps@users.noreply.github.com}" \
-      commit --allow-empty -m "$COMMIT_MSG (unchanged)"
+  gitw "${GIT_COMMIT_CFG[@]}" commit --allow-empty -m "$COMMIT_MSG (unchanged)"
 else
-  gitw -c user.name="${GIT_AUTHOR_NAME:-SIENA Flood Maps}" \
-      -c user.email="${GIT_AUTHOR_EMAIL:-siena-floodmaps@users.noreply.github.com}" \
-      commit -m "$COMMIT_MSG"
+  gitw "${GIT_COMMIT_CFG[@]}" commit -m "$COMMIT_MSG"
 fi
 log_phase "git commit done ($(( $(date +%s) - t0 ))s)"
 
@@ -242,14 +250,93 @@ gh_auth_env() {
   fi
 }
 
-latest_pages_run_id() {
+cancel_stale_pages_runs() {
+  # Cancel waiting/queued Pages runs so a new dispatch is not blocked for hours.
+  if ! command -v gh >/dev/null 2>&1; then
+    return 0
+  fi
   gh_auth_env
-  gh run list --workflow=pages.yml --repo "$REPO_SLUG" --limit 1 \
-    --json databaseId -q '.[0].databaseId' 2>/dev/null || true
+  local ids
+  ids="$(
+    gh run list --workflow=pages.yml --repo "$REPO_SLUG" --limit 10 \
+      --json databaseId,status \
+      -q '.[] | select(.status=="queued" or .status=="pending" or .status=="waiting") | .databaseId' \
+      2>/dev/null || true
+  )"
+  if [[ -z "$ids" ]]; then
+    return 0
+  fi
+  local id
+  while IFS= read -r id; do
+    [[ -z "$id" ]] && continue
+    echo "Cancelling stale Pages run ${id} (status queued/pending/waiting)…"
+    gh run cancel "$id" --repo "$REPO_SLUG" >/dev/null 2>&1 || true
+  done <<<"$ids"
+}
+
+wait_for_run() {
+  # Portable gh run watch (macOS has no GNU timeout by default).
+  local run_id="$1"
+  local max_sec="$2"
+  local deadline=$(( $(date +%s) + max_sec ))
+  local status conclusion
+  local waiting_since=0
+
+  while [[ $(date +%s) -lt $deadline ]]; do
+    read -r status conclusion < <(
+      gh run view "$run_id" --repo "$REPO_SLUG" \
+        --json status,conclusion -q '[.status, (.conclusion // "")] | @tsv' 2>/dev/null || echo $'\t'
+    )
+    if [[ "$status" == "completed" ]]; then
+      if [[ "$conclusion" == "success" ]]; then
+        return 0
+      fi
+      echo "Pages deploy run ${run_id} finished: ${conclusion:-unknown}" >&2
+      return 1
+    fi
+    # Environment "waiting" / concurrency queue — fail early so we can re-dispatch.
+    if [[ "$status" == "waiting" || "$status" == "pending" || "$status" == "queued" ]]; then
+      waiting_since=$((waiting_since + 15))
+      if [[ "$waiting_since" -ge 300 ]]; then
+        echo "Pages deploy run ${run_id} stuck in ${status} for ${waiting_since}s — treating as failed." >&2
+        gh run cancel "$run_id" --repo "$REPO_SLUG" >/dev/null 2>&1 || true
+        return 1
+      fi
+    else
+      waiting_since=0
+    fi
+    sleep 15
+  done
+  echo "Timed out waiting for Pages deploy run ${run_id} (${max_sec}s)." >&2
+  return 124
+}
+
+find_pages_run_after() {
+  local not_before="$1"
+  "$PYTHON" - "$not_before" "$REPO_SLUG" <<'PY'
+import json, subprocess, sys
+from datetime import datetime, timezone
+
+not_before = int(sys.argv[1])
+repo = sys.argv[2]
+out = subprocess.run(
+    ["gh", "run", "list", "--workflow=pages.yml", "--repo", repo, "--limit", "8", "--json", "databaseId,createdAt,event"],
+    capture_output=True, text=True, check=False,
+)
+if out.returncode != 0:
+    sys.exit(0)
+for row in json.loads(out.stdout or "[]"):
+    if row.get("event") != "workflow_dispatch":
+        continue
+    created = datetime.fromisoformat(row["createdAt"].replace("Z", "+00:00"))
+    if created.timestamp() >= not_before - 30:
+        print(row["databaseId"])
+        break
+PY
 }
 
 wait_for_pages_deploy() {
-  # Poll the workflow triggered by publish.sh; on failure bump stamp + re-dispatch.
+  # Poll the workflow triggered by publish.sh; on real failure bump stamp + re-dispatch once.
   if ! command -v gh >/dev/null 2>&1; then
     return 0
   fi
@@ -258,19 +345,20 @@ wait_for_pages_deploy() {
     return 0
   fi
 
-  local rounds="${PAGES_DEPLOY_RETRY_ROUNDS:-2}"
-  local wait_sec="${PAGES_DEPLOY_WAIT_SEC:-540}"
-  local round run_id
+  local rounds="${PAGES_DEPLOY_RETRY_ROUNDS:-1}"
+  local wait_sec="${PAGES_DEPLOY_WAIT_SEC:-900}"
+  local round run_id dispatch_at
 
+  dispatch_at="${PAGES_DEPLOY_DISPATCH_AT:-$(date +%s)}"
   for ((round = 1; round <= rounds + 1; round++)); do
     sleep 12
-    run_id="$(latest_pages_run_id)"
-    if [[ -z "$run_id" || "$run_id" == "null" ]]; then
+    run_id="$(find_pages_run_after "$((dispatch_at - 30))" | head -1)"
+    if [[ -z "$run_id" ]]; then
       echo "WARNING: could not find Pages workflow run to watch." >&2
       return 0
     fi
     echo "Watching Pages deploy run ${run_id} (round ${round}/$((rounds + 1)), timeout ${wait_sec}s)…"
-    if timeout "$wait_sec" gh run watch "$run_id" --repo "$REPO_SLUG" --exit-status; then
+    if wait_for_run "$run_id" "$wait_sec"; then
       echo "Pages deploy succeeded."
       return 0
     fi
@@ -281,6 +369,8 @@ wait_for_pages_deploy() {
     fi
     echo "Pages deploy failed — bumping stamp and re-dispatching (round $((round + 1)))…"
     bump_pages_deploy_stamp || true
+    dispatch_at="$(date +%s)"
+    PAGES_DEPLOY_DISPATCH_AT="$dispatch_at"
     trigger_deploy_workflow || return 1
   done
   return 1
@@ -327,7 +417,9 @@ if [[ "$SITE_UNCHANGED" -eq 1 ]]; then
 else
   bump_pages_deploy_stamp || true
 
+  cancel_stale_pages_runs || true
   if trigger_deploy_workflow; then
+    PAGES_DEPLOY_DISPATCH_AT="$(date +%s)"
     echo "Deploy workflow started — usually live in 3–5 min for ~300MB sites."
     wait_for_pages_deploy || true
   else
