@@ -1,7 +1,7 @@
 {
   "version": 1,
   "description": "SIENA Sentinel-1 RGB flood classification GeoTIFF granules",
-  "product_count": 2177,
+  "product_count": 2183,
   "available_dates": [
     "20251214",
     "20251217",
@@ -17853,6 +17853,23 @@
       "center": [
         -131.37756865167864,
         55.72392165662977
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1C_IW_GRDH_1SDV_20260829T040725_20260829T040754_009205_0124A5_9837_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1C_IW_GRDH_1SDV_20260829T040725_20260829T040754_009205_0124A5_9837_sigma0_vv_30m.tif",
+      "sensing_start": "2026-08-29T04:07:25Z",
+      "sensing_end": "2026-08-29T04:07:54Z",
+      "sensing_date": "20260829",
+      "bounds": [
+        -158.68412934941375,
+        55.89436214091561,
+        -153.94897529792846,
+        58.24173118710332
+      ],
+      "center": [
+        -156.3165523236711,
+        57.068046664009465
       ]
     },
     {
@@ -36842,6 +36859,91 @@
       "center": [
         -103.85183563444616,
         31.80514145307793
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260828T221829_20260828T221859_004332_007FDF_9E6B_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260828T221829_20260828T221859_004332_007FDF_9E6B_sigma0_vv_30m.tif",
+      "sensing_start": "2026-08-28T22:18:29Z",
+      "sensing_end": "2026-08-28T22:18:59Z",
+      "sensing_date": "20260828",
+      "bounds": [
+        -68.13010448125065,
+        43.21250841606901,
+        -64.51341641346869,
+        45.52956145386144
+      ],
+      "center": [
+        -66.32176044735968,
+        44.37103493496522
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260828T221859_20260828T221924_004332_007FDF_AFEA_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260828T221859_20260828T221924_004332_007FDF_AFEA_sigma0_vv_30m.tif",
+      "sensing_start": "2026-08-28T22:18:59Z",
+      "sensing_end": "2026-08-28T22:19:24Z",
+      "sensing_date": "20260828",
+      "bounds": [
+        -68.55253708808814,
+        44.98033180111291,
+        -64.8960473493008,
+        47.015971312296976
+      ],
+      "center": [
+        -66.72429221869447,
+        45.99815155670494
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260828T221924_20260828T221949_004332_007FDF_6A7A_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260828T221924_20260828T221949_004332_007FDF_6A7A_sigma0_vv_30m.tif",
+      "sensing_start": "2026-08-28T22:19:24Z",
+      "sensing_end": "2026-08-28T22:19:49Z",
+      "sensing_date": "20260828",
+      "bounds": [
+        -68.99009704997711,
+        46.48884526457096,
+        -65.2299338414194,
+        48.50308158262032
+      ],
+      "center": [
+        -67.11001544569825,
+        47.49596342359564
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260828T221949_20260828T222014_004332_007FDF_709F_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260828T221949_20260828T222014_004332_007FDF_709F_sigma0_vv_30m.tif",
+      "sensing_start": "2026-08-28T22:19:49Z",
+      "sensing_end": "2026-08-28T22:20:14Z",
+      "sensing_date": "20260828",
+      "bounds": [
+        -69.45899455408372,
+        47.996686550107476,
+        -65.5672594787438,
+        49.988536882239245
+      ],
+      "center": [
+        -67.51312701641376,
+        48.99261171617336
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260828T222014_20260828T222039_004332_007FDF_05F7_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20260828T222014_20260828T222039_004332_007FDF_05F7_sigma0_vv_30m.tif",
+      "sensing_start": "2026-08-28T22:20:14Z",
+      "sensing_end": "2026-08-28T22:20:39Z",
+      "sensing_date": "20260828",
+      "bounds": [
+        -69.94726286979372,
+        49.50533922384319,
+        -65.92210796202896,
+        51.475108045016206
+      ],
+      "center": [
+        -67.93468541591133,
+        50.4902236344297
       ]
     },
     {
