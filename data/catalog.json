@@ -1,7 +1,7 @@
 {
   "version": 1,
   "description": "SIENA Sentinel-1 RGB flood classification GeoTIFF granules",
-  "product_count": 2251,
+  "product_count": 2252,
   "available_dates": [
     "20251214",
     "20251217",
@@ -18754,6 +18754,23 @@
       "center": [
         -117.39087636454028,
         50.66390071584267
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1C_IW_GRDH_1SDV_20261010T045551_20261010T045621_009818_0138EC_2BD1_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1C_IW_GRDH_1SDV_20261010T045551_20261010T045621_009818_0138EC_2BD1_sigma0_vv_30m.tif",
+      "sensing_start": "2026-10-10T04:55:51Z",
+      "sensing_end": "2026-10-10T04:56:21Z",
+      "sensing_date": "20261010",
+      "bounds": [
+        -170.0019054101857,
+        52.588007128464106,
+        -165.4336487165195,
+        54.76545121804837
+      ],
+      "center": [
+        -167.71777706335263,
+        53.676729173256234
       ]
     },
     {
