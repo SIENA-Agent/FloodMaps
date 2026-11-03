@@ -1,7 +1,7 @@
 {
   "version": 1,
   "description": "SIENA Sentinel-1 RGB flood classification GeoTIFF granules",
-  "product_count": 2252,
+  "product_count": 2255,
   "available_dates": [
     "20251214",
     "20251217",
@@ -20097,6 +20097,57 @@
       "center": [
         -70.02642327589749,
         36.106873743958
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDH_20261102T102459_20261102T102524_005287_00A0EA_8ECF_sigma0_hh_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDH_20261102T102459_20261102T102524_005287_00A0EA_8ECF_sigma0_hh_30m.tif",
+      "sensing_start": "2026-11-02T10:24:59Z",
+      "sensing_end": "2026-11-02T10:25:24Z",
+      "sensing_date": "20261102",
+      "bounds": [
+        -67.13564628170542,
+        37.146476504530206,
+        -63.818046483526594,
+        39.04536294478424
+      ],
+      "center": [
+        -65.476846382616,
+        38.09591972465722
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDH_20261102T102524_20261102T102549_005287_00A0EA_D75B_sigma0_hh_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDH_20261102T102524_20261102T102549_005287_00A0EA_D75B_sigma0_hh_30m.tif",
+      "sensing_start": "2026-11-02T10:25:24Z",
+      "sensing_end": "2026-11-02T10:25:49Z",
+      "sensing_date": "20261102",
+      "bounds": [
+        -67.44199821009754,
+        35.642611075364705,
+        -64.180057029035,
+        37.54345713451862
+      ],
+      "center": [
+        -65.81102761956626,
+        36.593034104941665
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDH_20261102T102549_20261102T102605_005287_00A0EA_D4A0_sigma0_hh_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDH_20261102T102549_20261102T102605_005287_00A0EA_D4A0_sigma0_hh_30m.tif",
+      "sensing_start": "2026-11-02T10:25:49Z",
+      "sensing_end": "2026-11-02T10:26:05Z",
+      "sensing_date": "20261102",
+      "bounds": [
+        -67.53702091962296,
+        34.58907567993926,
+        -64.56981423870377,
+        36.11391173932928
+      ],
+      "center": [
+        -66.05341757916337,
+        35.35149370963427
       ]
     },
     {
