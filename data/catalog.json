@@ -1,7 +1,7 @@
 {
   "version": 1,
   "description": "SIENA Sentinel-1 RGB flood classification GeoTIFF granules",
-  "product_count": 2211,
+  "product_count": 2214,
   "available_dates": [
     "20251214",
     "20251217",
@@ -18431,6 +18431,23 @@
       "center": [
         -129.2645282798881,
         55.802052563806065
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1C_IW_GRDH_1SDV_20261116T105533_20261116T105614_010361_014B32_D9EC_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1C_IW_GRDH_1SDV_20261116T105533_20261116T105614_010361_014B32_D9EC_sigma0_vv_30m.tif",
+      "sensing_start": "2026-11-16T10:55:33Z",
+      "sensing_end": "2026-11-16T10:56:14Z",
+      "sensing_date": "20261116",
+      "bounds": [
+        -74.11079391275949,
+        43.80805131727046,
+        -70.03347245333863,
+        46.64620905674387
+      ],
+      "center": [
+        -72.07213318304906,
+        45.22713018700716
       ]
     },
     {
@@ -37624,6 +37641,40 @@
       "center": [
         -110.97526452512832,
         32.48057104488731
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20261116T101333_20261116T101403_005491_00A7E2_E72E_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20261116T101333_20261116T101403_005491_00A7E2_E72E_sigma0_vv_30m.tif",
+      "sensing_start": "2026-11-16T10:13:33Z",
+      "sensing_end": "2026-11-16T10:14:03Z",
+      "sensing_date": "20261116",
+      "bounds": [
+        -66.55871623871843,
+        18.632271021599625,
+        -63.78586219475137,
+        20.824509647871416
+      ],
+      "center": [
+        -65.1722892167349,
+        19.728390334735522
+      ]
+    },
+    {
+      "id": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20261116T101403_20261116T101431_005491_00A7E2_FDEF_sigma0_vv_30m",
+      "filename": "SIENA_2classes_RGB_S1D_IW_GRDH_1SDV_20261116T101403_20261116T101431_005491_00A7E2_FDEF_sigma0_vv_30m.tif",
+      "sensing_start": "2026-11-16T10:14:03Z",
+      "sensing_end": "2026-11-16T10:14:31Z",
+      "sensing_date": "20261116",
+      "bounds": [
+        -66.88593731794627,
+        16.934442643588678,
+        -64.15266575931402,
+        19.058349425559705
+      ],
+      "center": [
+        -65.51930153863015,
+        17.99639603457419
       ]
     }
   ]
